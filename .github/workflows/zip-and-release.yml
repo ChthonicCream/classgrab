@@ -1,0 +1,47 @@
+name: Zip and Release on Push
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - '.github/**'
+      - 'README.md'
+  pull_request:
+    branches: [ "main" ]
+    paths-ignore:
+      - '.github/**'
+      - 'README.md'
+
+permissions:
+  contents: write
+
+jobs:
+  zip-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from manifest.json
+        id: manifest
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create ZIP
+        run: |
+          mkdir classgrab
+          cp -r icons scripts styles views manifest.json classgrab/
+          zip -r classgrab-v${{ steps.manifest.outputs.version }}.zip classgrab
+
+      - name: Push as a github release
+        uses: ncipollo/release-action@v1
+        with:
+          name: "ClassGrab v${{ steps.manifest.outputs.version }}"
+          artifacts: classgrab-v${{ steps.manifest.outputs.version }}.zip
+          tag: v${{ steps.manifest.outputs.version }}
+          
+  
+
