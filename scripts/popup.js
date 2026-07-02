@@ -1,161 +1,423 @@
-chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    const currentTab = tabs[0];
-    if (!currentTab.url.startsWith('https://classroom.google.com/')) {
-        document.body.innerHTML = `
-            <div class="unsupported-container">
-                <div class="unsupported-icon">🔒</div>
-                <h2>Not Google Classroom</h2>
-                <p>This extension only works on Google Classroom pages. Please navigate to Google Classroom to use ClassGrab.</p>
-                <a href="https://classroom.google.com" target="_blank" class="primary-btn accent-btn center-btn">Open Classroom</a>
-            </div>
-        `;
+const fileList = document.getElementById("fileList");
+const selectAll = document.getElementById("selectAll");
+const downloadSelectedButton = document.getElementById("downloadSelected");
+const downloadAllButton = document.getElementById("downloadAll");
+const statusPanel = document.getElementById("statusPanel");
+const darkModeButton = document.getElementById("darkModeButton");
+const body = document.getElementById("body");
+
+let authuser = null;
+let files = [];
+const fileStatusElements = new Map();
+const pendingDownloads = new Map();
+
+function setQueryParam(rawUrl, key, value) {
+    try {
+        const url = new URL(rawUrl);
+        url.searchParams.set(key, value);
+        return url.toString();
+    } catch (error) {
+        return rawUrl;
+    }
+}
+
+function withAuthUser(rawUrl) {
+    if (authuser === null) {
+        return rawUrl;
+    }
+
+    return setQueryParam(rawUrl, "authuser", authuser);
+}
+
+function extractAuthUser(currentUrl) {
+    try {
+        const url = new URL(currentUrl);
+        const authuserParam = url.searchParams.get("authuser");
+
+        if (/^\d+$/.test(authuserParam || "")) {
+            return authuserParam;
+        }
+    } catch (error) {
+        // Fall back to the Classroom path parser below.
+    }
+
+    const authuserMatch = currentUrl.match(/\/u\/(\d+)\//);
+    return authuserMatch ? authuserMatch[1] : null;
+}
+
+function setStatus(message, type = "info") {
+    statusPanel.textContent = message;
+    statusPanel.className = `status-panel status-${type}`;
+    statusPanel.hidden = false;
+}
+
+function clearStatus() {
+    statusPanel.hidden = true;
+    statusPanel.textContent = "";
+    statusPanel.className = "status-panel";
+}
+
+function setControlsDisabled(disabled) {
+    selectAll.disabled = disabled || files.length === 0;
+    downloadSelectedButton.disabled = disabled || files.length === 0;
+    downloadAllButton.disabled = disabled || files.length === 0;
+}
+
+function updateFileStatus(fileId, label, type = "muted") {
+    const statusElement = fileStatusElements.get(fileId);
+
+    if (!statusElement) {
         return;
     }
 
-    // Extract the authuser parameter from the Classroom URL (defaults to 0 if not found)
-    const authuserMatch = currentTab.url.match(/\/u\/(\d+)\//);
-    const authuser = authuserMatch ? authuserMatch[1] : '0';
+    statusElement.textContent = label;
+    statusElement.className = `file-status file-status-${type}`;
+}
 
-    // Helper function to safely append authuser to the download link
-    const appendAuthUser = (url) => {
-        const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}authuser=${authuser}`;
-    };
+function getSelectedFiles() {
+    return Array.from(fileList.querySelectorAll(".file-checkbox"))
+        .filter((checkbox) => checkbox.checked)
+        .map((checkbox) => files.find((file) => file.id === checkbox.value))
+        .filter(Boolean);
+}
 
-    chrome.tabs.sendMessage(tabs[0].id, { action: "getDriveLinks" }, function (response) {
-        const fileList = document.getElementById('fileList');
-        
-        if (response && response.files.length > 0) {
-            fileList.innerHTML = ''; // Clear previous text
-            
-            response.files.forEach(file => {
-                const li = document.createElement('li');
-                li.className = 'file-item';
+function extractDriveConfirmationUrl(html, baseUrl, fileId) {
+    const document = new DOMParser().parseFromString(html, "text/html");
+    const candidates = [];
+    let resourceKey = null;
 
-                // Custom checkbox container
-                const checkboxWrapper = document.createElement('label');
-                checkboxWrapper.className = 'checkbox-container';
-                
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'file-checkbox';
-                checkbox.value = file.link;
-                checkbox.dataset.filename = file.name;
+    try {
+        resourceKey = new URL(baseUrl).searchParams.get("resourcekey");
+    } catch (error) {
+        resourceKey = null;
+    }
 
-                const checkmark = document.createElement('span');
-                checkmark.className = 'checkmark';
+    document.querySelectorAll("a[href]").forEach((anchor) => {
+        candidates.push(anchor.getAttribute("href"));
+    });
 
-                checkboxWrapper.appendChild(checkbox);
-                checkboxWrapper.appendChild(checkmark);
-
-                // File icon (extract file extension)
-                const nameParts = file.name.split('.');
-                const ext = nameParts.length > 1 ? nameParts.pop().toLowerCase() : 'file';
-                
-                const iconWrapper = document.createElement('div');
-                // Use default styling fallback if extension classes aren't matched
-                const knownExts = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'rar', 'jpg', 'jpeg', 'png', 'gif'];
-                if (knownExts.includes(ext)) {
-                    iconWrapper.className = `file-icon-wrapper ext-${ext}`;
-                } else {
-                    iconWrapper.className = 'file-icon-wrapper file-icon-default';
-                }
-                
-                const iconText = document.createElement('span');
-                iconText.className = 'file-icon-text';
-                iconText.textContent = ext.substring(0, 3).toUpperCase();
-                iconWrapper.appendChild(iconText);
-
-                // File text
-                const text = document.createElement('span');
-                text.className = 'file-name';
-                text.textContent = file.name;
-
-                li.appendChild(checkboxWrapper);
-                li.appendChild(iconWrapper);
-                li.appendChild(text);
-                fileList.appendChild(li);
-
-                // Toggle click event on list item click
-                li.addEventListener('click', function (event) {
-                    if (event.target !== checkbox && !checkboxWrapper.contains(event.target)) {
-                        checkbox.checked = !checkbox.checked;
-                        checkbox.dispatchEvent(new Event('change'));
-                    }
-                });
-
-                checkbox.addEventListener('change', function() {
-                    const allChecked = Array.from(fileList.querySelectorAll('.file-checkbox')).every(cb => cb.checked);
-                    document.getElementById('selectAll').checked = allChecked;
-                });
+    document.querySelectorAll("form[action]").forEach((form) => {
+        try {
+            const url = new URL(form.getAttribute("action"), baseUrl);
+            form.querySelectorAll("input[name]").forEach((input) => {
+                url.searchParams.set(input.getAttribute("name"), input.getAttribute("value") || "");
             });
-
-            // select-all toggle
-            document.getElementById('selectAll').addEventListener('change', function () {
-                Array.from(fileList.querySelectorAll('.file-checkbox')).forEach(cb => {
-                    cb.checked = this.checked;
-                });
-            });
-
-            // download action triggers
-            document.getElementById('downloadSelected').addEventListener('click', function () {
-                Array.from(fileList.children).forEach(li => {
-                    const checkbox = li.querySelector('.file-checkbox');
-                    if (checkbox && checkbox.checked) {
-                        const filename = checkbox.dataset.filename;
-                        console.log('Downloading:', filename, 'from:', checkbox.value);
-                        chrome.downloads.download({ 
-                            url: appendAuthUser(checkbox.value), 
-                            filename: filename,
-                            saveAs: false
-                        }, function(downloadId) {
-                            if (chrome.runtime.lastError) {
-                                console.error('Download error:', chrome.runtime.lastError);
-                            } else {
-                                console.log('Download started:', downloadId);
-                            }
-                        });
-                    }
-                });
-            });
-
-            document.getElementById('downloadAll').addEventListener('click', function () {
-                response.files.forEach(file => {
-                    console.log('Downloading:', file.name, 'from:', file.link);
-                    chrome.downloads.download({ 
-                        url: appendAuthUser(file.link), 
-                        filename: file.name,
-                        saveAs: false
-                    }, function(downloadId) {
-                        if (chrome.runtime.lastError) {
-                            console.error('Download error:', chrome.runtime.lastError);
-                        } else {
-                            console.log('Download started:', downloadId);
-                        }
-                    });
-                });
-            });
-
-        } else {
-            fileList.innerHTML = `
-                <div class="empty-state">
-                    No classroom attachment files found.<br>
-                    Try opening a class post, assignment, or refresh the page.
-                </div>
-            `;
-            // Disable buttons if list is empty
-            document.getElementById('downloadSelected').disabled = true;
-            document.getElementById('downloadAll').disabled = true;
-            document.getElementById('selectAll').disabled = true;
-            document.getElementById('downloadSelected').style.opacity = 0.5;
-            document.getElementById('downloadAll').style.opacity = 0.5;
+            candidates.push(url.toString());
+        } catch (error) {
+            // Ignore malformed Drive form actions.
         }
     });
-});
 
-// Theme Toggle logic
-const darkModeButton = document.getElementById("darkModeButton");
-const body = document.getElementById("body");
+    for (const candidate of candidates) {
+        try {
+            const url = new URL(candidate.replace(/&amp;/g, "&"), baseUrl);
+            const isDriveDownload =
+                (url.hostname === "drive.google.com" && url.pathname.includes("/uc")) ||
+                (url.hostname === "drive.usercontent.google.com" && url.pathname.includes("/download"));
+            const hasConfirmation = url.searchParams.has("confirm");
+            const idMatches = !fileId || !url.searchParams.has("id") || url.searchParams.get("id") === fileId;
+
+            if (isDriveDownload && hasConfirmation && idMatches) {
+                if (fileId && !url.searchParams.has("id")) {
+                    url.searchParams.set("id", fileId);
+                }
+
+                if (resourceKey && !url.searchParams.has("resourcekey")) {
+                    url.searchParams.set("resourcekey", resourceKey);
+                }
+
+                return url.toString();
+            }
+        } catch (error) {
+            // Ignore malformed candidate URLs.
+        }
+    }
+
+    const fallbackMatch = html.match(/confirm=([0-9A-Za-z_\-]+).*?[?&]id=([0-9A-Za-z_\-]+)/);
+    if (fallbackMatch && (!fileId || fallbackMatch[2] === fileId)) {
+        const url = new URL("https://drive.google.com/uc");
+        url.searchParams.set("export", "download");
+        url.searchParams.set("confirm", fallbackMatch[1]);
+        url.searchParams.set("id", fallbackMatch[2]);
+        if (resourceKey) {
+            url.searchParams.set("resourcekey", resourceKey);
+        }
+        return url.toString();
+    }
+
+    return null;
+}
+
+async function prepareDownloadUrl(file) {
+    const downloadUrl = withAuthUser(file.link);
+
+    if (!downloadUrl.startsWith("https://drive.google.com/uc")) {
+        return {
+            url: downloadUrl,
+            note: null,
+        };
+    }
+
+    let response;
+
+    try {
+        response = await fetch(downloadUrl, {
+            credentials: "include",
+            redirect: "follow",
+        });
+    } catch (error) {
+        return {
+            url: downloadUrl,
+            note: "ClassGrab could not pre-check this Drive file, so it started the normal download flow.",
+        };
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    const contentDisposition = response.headers.get("content-disposition") || "";
+    const finalUrl = withAuthUser(response.url || downloadUrl);
+    const looksLikeHtml = contentType.toLowerCase().includes("text/html");
+
+    if (!looksLikeHtml || contentDisposition.toLowerCase().includes("attachment")) {
+        if (response.body) {
+            await response.body.cancel();
+        }
+
+        return {
+            url: finalUrl,
+            note: null,
+        };
+    }
+
+    const html = await response.text();
+    const confirmedUrl = extractDriveConfirmationUrl(html, finalUrl, file.fileId);
+
+    if (confirmedUrl) {
+        return {
+            url: withAuthUser(confirmedUrl),
+            note: "Google Drive required a confirmation step; ClassGrab resolved it automatically.",
+        };
+    }
+
+    return {
+        manualUrl: file.viewUrl || file.originalUrl || finalUrl,
+        note: "Google Drive returned a confirmation page that ClassGrab could not resolve automatically.",
+    };
+}
+
+function startDownload(file, url) {
+    return new Promise((resolve, reject) => {
+        chrome.downloads.download(
+            {
+                url,
+                filename: file.name,
+                saveAs: false,
+                conflictAction: "uniquify",
+            },
+            (downloadId) => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                    return;
+                }
+
+                if (typeof downloadId !== "number") {
+                    reject(new Error("Chrome did not return a download id."));
+                    return;
+                }
+
+                pendingDownloads.set(downloadId, file);
+                trackDownload(downloadId, file);
+                resolve(downloadId);
+            },
+        );
+    });
+}
+
+function trackDownload(downloadId, file) {
+    chrome.runtime.sendMessage({
+        action: "trackDownload",
+        downloadId,
+        file: {
+            id: file.id,
+            name: file.name,
+            viewUrl: file.viewUrl,
+            originalUrl: file.originalUrl,
+        },
+    });
+}
+
+function restoreStoredStatuses() {
+    chrome.runtime.sendMessage({ action: "getDownloadStatuses" }, (response) => {
+        if (chrome.runtime.lastError || !response || !response.statuses) {
+            return;
+        }
+
+        files.forEach((file) => {
+            const status = response.statuses[file.id];
+
+            if (!status) {
+                return;
+            }
+
+            updateFileStatus(file.id, status.label, status.type);
+        });
+    });
+}
+
+function openManualDownload(file, url) {
+    updateFileStatus(file.id, "manual", "warning");
+    chrome.tabs.create({ url: withAuthUser(url) });
+}
+
+async function downloadBatch(targetFiles) {
+    if (targetFiles.length === 0) {
+        setStatus("Select at least one file to download.", "warning");
+        return;
+    }
+
+    setControlsDisabled(true);
+    setStatus(`Preparing ${targetFiles.length} file${targetFiles.length === 1 ? "" : "s"}...`, "info");
+
+    let started = 0;
+    let manual = 0;
+    let failed = 0;
+    let notes = 0;
+
+    for (const file of targetFiles) {
+        updateFileStatus(file.id, "preparing", "info");
+
+        try {
+            const prepared = await prepareDownloadUrl(file);
+
+            if (prepared.note) {
+                notes += 1;
+            }
+
+            if (prepared.manualUrl) {
+                manual += 1;
+                openManualDownload(file, prepared.manualUrl);
+                continue;
+            }
+
+            await startDownload(file, prepared.url);
+            started += 1;
+            updateFileStatus(file.id, "started", "success");
+        } catch (error) {
+            failed += 1;
+            updateFileStatus(file.id, "failed", "error");
+            console.error("ClassGrab download failed:", file.name, error);
+        }
+    }
+
+    const summary = [];
+    if (started) summary.push(`${started} started`);
+    if (manual) summary.push(`${manual} opened for manual confirmation`);
+    if (failed) summary.push(`${failed} failed`);
+    if (notes) summary.push(`${notes} needed extra Drive handling`);
+
+    setStatus(summary.length ? summary.join(", ") : "No downloads were started.", failed ? "error" : manual ? "warning" : "success");
+    setControlsDisabled(false);
+    restoreStoredStatuses();
+}
+
+function renderUnsupportedPage() {
+    document.querySelector(".main-content").innerHTML = `
+        <div class="unsupported-container">
+            <div class="unsupported-icon">!</div>
+            <h2>Not Google Classroom</h2>
+            <p>This extension only works on Google Classroom pages.</p>
+            <a href="https://classroom.google.com" target="_blank" rel="noopener noreferrer" class="primary-btn accent-btn center-btn">Open Classroom</a>
+        </div>
+    `;
+}
+
+function renderEmptyState(message) {
+    fileList.innerHTML = `
+        <div class="empty-state">
+            ${message}
+        </div>
+    `;
+    setControlsDisabled(true);
+}
+
+function renderFiles(nextFiles) {
+    files = nextFiles;
+    fileStatusElements.clear();
+    fileList.innerHTML = "";
+    clearStatus();
+
+    files.forEach((file) => {
+        const li = document.createElement("li");
+        li.className = "file-item";
+
+        const checkboxWrapper = document.createElement("label");
+        checkboxWrapper.className = "checkbox-container";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "file-checkbox";
+        checkbox.value = file.id;
+
+        const checkmark = document.createElement("span");
+        checkmark.className = "checkmark";
+
+        checkboxWrapper.appendChild(checkbox);
+        checkboxWrapper.appendChild(checkmark);
+
+        const nameParts = file.name.split(".");
+        const ext = nameParts.length > 1 ? nameParts.pop().toLowerCase() : "file";
+
+        const iconWrapper = document.createElement("div");
+        const knownExts = ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "zip", "rar", "jpg", "jpeg", "png", "gif", "py"];
+        iconWrapper.className = knownExts.includes(ext)
+            ? `file-icon-wrapper ext-${ext}`
+            : "file-icon-wrapper file-icon-default";
+
+        const iconText = document.createElement("span");
+        iconText.className = "file-icon-text";
+        iconText.textContent = ext.substring(0, 3).toUpperCase();
+        iconWrapper.appendChild(iconText);
+
+        const textWrapper = document.createElement("div");
+        textWrapper.className = "file-text";
+
+        const text = document.createElement("span");
+        text.className = "file-name";
+        text.textContent = file.name;
+
+        const meta = document.createElement("span");
+        meta.className = file.warning ? "file-meta file-meta-warning" : "file-meta";
+        meta.textContent = file.warning || file.kind;
+        meta.title = file.warning || file.kind;
+
+        textWrapper.appendChild(text);
+        textWrapper.appendChild(meta);
+
+        const status = document.createElement("span");
+        status.className = "file-status file-status-muted";
+        status.textContent = "ready";
+        fileStatusElements.set(file.id, status);
+
+        li.appendChild(checkboxWrapper);
+        li.appendChild(iconWrapper);
+        li.appendChild(textWrapper);
+        li.appendChild(status);
+        fileList.appendChild(li);
+
+        li.addEventListener("click", (event) => {
+            if (event.target !== checkbox && !checkboxWrapper.contains(event.target)) {
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event("change"));
+            }
+        });
+
+        checkbox.addEventListener("change", () => {
+            const checkboxes = Array.from(fileList.querySelectorAll(".file-checkbox"));
+            selectAll.checked = checkboxes.length > 0 && checkboxes.every((cb) => cb.checked);
+        });
+    });
+
+    setControlsDisabled(false);
+}
 
 function updateThemeUI(isDark) {
     if (isDark) {
@@ -171,21 +433,110 @@ function updateThemeUI(isDark) {
     }
 }
 
-darkModeButton.addEventListener('click', function() {
+function initializeTheme() {
+    const savedTheme = localStorage.getItem("theme");
+    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const shouldBeDark = savedTheme === "dark" || (!savedTheme && systemPrefersDark);
+
+    body.classList.toggle("dm", shouldBeDark);
+    updateThemeUI(shouldBeDark);
+}
+
+function loadFilesFromActiveTab() {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (chrome.runtime.lastError) {
+            renderEmptyState("ClassGrab could not read the active tab. Try reopening the popup.");
+            setStatus(chrome.runtime.lastError.message, "error");
+            return;
+        }
+
+        const currentTab = tabs && tabs[0];
+        const currentUrl = currentTab && currentTab.url;
+
+        if (!currentUrl || !currentUrl.startsWith("https://classroom.google.com/")) {
+            renderUnsupportedPage();
+            return;
+        }
+
+        authuser = extractAuthUser(currentUrl);
+
+        chrome.tabs.sendMessage(currentTab.id, { action: "getDriveLinks" }, (response) => {
+            if (chrome.runtime.lastError) {
+                renderEmptyState("ClassGrab could not connect to this Classroom tab. Refresh the Classroom page, then open ClassGrab again.");
+                setStatus(chrome.runtime.lastError.message, "error");
+                return;
+            }
+
+            if (!response || !Array.isArray(response.files)) {
+                renderEmptyState("ClassGrab received an unexpected response from the Classroom tab.");
+                setStatus("Refresh the Classroom page and try again.", "error");
+                return;
+            }
+
+            if (response.files.length === 0) {
+                renderEmptyState("No supported Classroom attachment files found.<br>Open a class post, assignment, or refresh the page.");
+                return;
+            }
+
+            renderFiles(response.files);
+        });
+    });
+}
+
+selectAll.addEventListener("change", () => {
+    Array.from(fileList.querySelectorAll(".file-checkbox")).forEach((checkbox) => {
+        checkbox.checked = selectAll.checked;
+    });
+});
+
+downloadSelectedButton.addEventListener("click", () => {
+    downloadBatch(getSelectedFiles());
+});
+
+downloadAllButton.addEventListener("click", () => {
+    downloadBatch(files);
+});
+
+darkModeButton.addEventListener("click", () => {
     const isDark = body.classList.toggle("dm");
     localStorage.setItem("theme", isDark ? "dark" : "light");
     updateThemeUI(isDark);
 });
 
-// Initialize Theme
-const savedTheme = localStorage.getItem("theme");
-const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-const shouldBeDark = savedTheme === "dark" || (!savedTheme && systemPrefersDark);
+chrome.downloads.onChanged.addListener((delta) => {
+    if (!pendingDownloads.has(delta.id)) {
+        return;
+    }
 
-if (shouldBeDark) {
-    body.classList.add("dm");
-    updateThemeUI(true);
-} else {
-    body.classList.remove("dm");
-    updateThemeUI(false);
-}
+    const file = pendingDownloads.get(delta.id);
+
+    if (delta.error) {
+        updateFileStatus(file.id, "failed", "error");
+        setStatus(`${file.name} failed: ${delta.error.current}`, "error");
+        pendingDownloads.delete(delta.id);
+        return;
+    }
+
+    if (!delta.state || delta.state.current !== "complete") {
+        return;
+    }
+
+    chrome.downloads.search({ id: delta.id }, (items) => {
+        const item = items && items[0];
+        const downloadedName = item && item.filename ? item.filename.toLowerCase() : "";
+        const mime = item && item.mime ? item.mime.toLowerCase() : "";
+        const isHtmlDownload = downloadedName.endsWith(".htm") || downloadedName.endsWith(".html") || mime.includes("text/html");
+
+        if (isHtmlDownload) {
+            updateFileStatus(file.id, "html warning", "warning");
+            setStatus(`${file.name} downloaded as an HTML page. Open the original Drive file and use Download anyway.`, "warning");
+        } else {
+            updateFileStatus(file.id, "complete", "success");
+        }
+
+        pendingDownloads.delete(delta.id);
+    });
+});
+
+initializeTheme();
+loadFilesFromActiveTab();

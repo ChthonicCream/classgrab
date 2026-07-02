@@ -64,11 +64,10 @@ body:
       label: What browsers are you seeing the problem on?
       multiple: true
       options:
-        - Firefox
         - Chrome
-        - Safari
         - Microsoft Edge
-        - Something else
+        - Other Chromium browser
+        - Unsupported browser
 
   - type: textarea
     id: additional-context

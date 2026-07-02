@@ -7,11 +7,7 @@ on:
     paths-ignore:
       - '.github/**'
       - 'README.md'
-  pull_request:
-    branches: [ "main" ]
-    paths-ignore:
-      - '.github/**'
-      - 'README.md'
+      - 'assets/**'
 
 permissions:
   contents: write
@@ -32,9 +28,7 @@ jobs:
 
       - name: Create ZIP
         run: |
-          mkdir classgrab
-          cp -r icons scripts styles views manifest.json classgrab/
-          zip -r classgrab-v${{ steps.manifest.outputs.version }}.zip classgrab
+          zip -r classgrab-v${{ steps.manifest.outputs.version }}.zip icons scripts styles views manifest.json
 
       - name: Push as a github release
         uses: ncipollo/release-action@v1
