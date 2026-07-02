@@ -9,16 +9,16 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.1-6366f1?style=for-the-badge">
-  <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-coming%20soon-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
-  <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-coming%20soon-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.0-6366f1?style=for-the-badge">
+  <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-available%20v1.1.0-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
+  <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-available%20v1.1.0-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
 </p>
 
 ClassGrab is a small Chromium extension for students and teachers who want to save the files attached to a Google Classroom post without opening each attachment one by one.
 
 It is intended for **Google Chrome** and **Microsoft Edge** only. Requests for Firefox, Safari, or other browser builds should be opened as GitHub issues so they can be discussed and tracked separately.
 
-![ClassGrab popup preview](assets/classgrab-demo.svg)
+![ClassGrab popup preview](assets/classgrab-preview.png)
 
 ## Features
 
@@ -32,12 +32,12 @@ It is intended for **Google Chrome** and **Microsoft Edge** only. Requests for F
 
 ## Store Availability
 
-ClassGrab is being prepared for:
+ClassGrab v1.1.0 is available for:
 
 - Chrome Web Store
 - Microsoft Edge Add-ons
 
-Other browser stores are not part of the current release scope. Open a feature request if you want another browser supported.
+ClassGrab v1.0.0 was the first store release. Other browser stores are not part of the current release scope. Open a feature request if you want another browser supported.
 
 ## Installation
 
@@ -70,8 +70,10 @@ Other browser stores are not part of the current release scope. Open a feature r
 
 ## Versions
 
-### v1.0.1
+### v1.1.0
 
+- Updated the README with current Chrome Web Store and Microsoft Edge Add-ons availability.
+- Replaced the generated README preview with a real, censored Classroom screenshot.
 - Added visible error and status messages for message and download failures.
 - Added persistent download outcome tracking for reopened popups.
 - Added Drive confirmation handling for files that show "Download anyway".
