@@ -12,6 +12,55 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $AllowedPermissions = @("activeTab", "downloads", "storage")
 $AllowedHostPermissions = @("https://drive.google.com/*", "https://drive.usercontent.google.com/*")
 $AllowedContentScriptMatches = @("https://classroom.google.com/*")
+$ExpectedLocales = @("en", "es", "fr", "zh_CN", "vi")
+$PackageRoots = @("icons", "scripts", "styles", "views", "_locales", "manifest.json")
+$RequiredLocaleMessages = @(
+  "extensionName",
+  "extensionDescription",
+  "availableFiles",
+  "selectAll",
+  "downloadSelected",
+  "downloadAll",
+  "toggleTheme",
+  "viewSource",
+  "fileListLabel",
+  "switchToLightMode",
+  "switchToDarkMode",
+  "requestFailed",
+  "precheckFallbackNote",
+  "driveConfirmationResolvedNote",
+  "driveConfirmationManualNote",
+  "downloadTrackingSaveWarning",
+  "manualConfirmationOpenError",
+  "selectAtLeastOneFile",
+  "preparingFiles",
+  "summaryStarted",
+  "summaryManual",
+  "summaryFailed",
+  "summaryDriveHandling",
+  "noDownloadsStarted",
+  "notGoogleClassroom",
+  "classroomOnly",
+  "openClassroom",
+  "activeTabReadError",
+  "classroomConnectError",
+  "unexpectedClassroomResponse",
+  "refreshClassroomRetry",
+  "noSupportedFiles",
+  "openClassPost",
+  "fileFailed",
+  "downloadVerificationWarning",
+  "htmlDownloadWarning",
+  "statusReady",
+  "statusPreparing",
+  "statusStarted",
+  "statusComplete",
+  "statusFailed",
+  "statusManual",
+  "statusTrackingWarning",
+  "statusUnknown",
+  "statusHtmlWarning"
+)
 $TextExtensions = @(".css", ".html", ".js", ".json", ".md", ".ps1", ".svg", ".yml", ".yaml")
 
 function Assert-EqualSet {
@@ -59,12 +108,39 @@ function Get-TextAuditedFiles {
   )
 }
 
+function Get-PackagedTextFiles {
+  $trackedArgs = @("-C", $RepoRoot, "ls-files", "--") + $PackageRoots
+  $files = @(& git @trackedArgs)
+  if ($LASTEXITCODE -ne 0) {
+    throw "git ls-files failed while collecting packaged text files for security check."
+  }
+
+  return @(
+    $files | Where-Object {
+      $extension = [IO.Path]::GetExtension($_).ToLowerInvariant()
+      $TextExtensions -contains $extension
+    }
+  )
+}
+
 function Assert-ManifestSecurity {
   $manifestPath = Join-Path $RepoRoot "manifest.json"
   $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 
   if ($manifest.manifest_version -ne 3) {
     throw "manifest.json must remain Manifest V3."
+  }
+
+  if ([string]$manifest.name -ne "__MSG_extensionName__") {
+    throw "manifest.json name must use the reviewed i18n message reference."
+  }
+
+  if ([string]$manifest.description -ne "__MSG_extensionDescription__") {
+    throw "manifest.json description must use the reviewed i18n message reference."
+  }
+
+  if ([string]$manifest.default_locale -ne "en") {
+    throw "manifest.json default_locale must remain 'en'."
   }
 
   Assert-EqualSet -Label "Extension permissions" -Actual @($manifest.permissions) -Expected $AllowedPermissions
@@ -79,6 +155,41 @@ function Assert-ManifestSecurity {
   $csp = [string]$manifest.content_security_policy.extension_pages
   if ($csp -match "unsafe-inline|unsafe-eval|https?://") {
     throw "Extension CSP must not allow inline code, eval, or remote script origins."
+  }
+}
+
+function Assert-Locales {
+  $localesRoot = Join-Path $RepoRoot "_locales"
+  if (-not (Test-Path -LiteralPath $localesRoot -PathType Container)) {
+    throw "_locales directory is missing."
+  }
+
+  $actualLocales = @(
+    Get-ChildItem -LiteralPath $localesRoot -Directory |
+      ForEach-Object { $_.Name }
+  )
+  Assert-EqualSet -Label "Extension locales" -Actual $actualLocales -Expected $ExpectedLocales
+
+  foreach ($locale in $ExpectedLocales) {
+    $messagesPath = Join-Path $localesRoot (Join-Path $locale "messages.json")
+    if (-not (Test-Path -LiteralPath $messagesPath -PathType Leaf)) {
+      throw "Missing locale message file: _locales/$locale/messages.json"
+    }
+
+    $messages = Get-Content -LiteralPath $messagesPath -Raw | ConvertFrom-Json
+    $messageNames = @($messages.PSObject.Properties.Name)
+    $missingMessages = @($RequiredLocaleMessages | Where-Object { $_ -notin $messageNames })
+    if ($missingMessages.Count -gt 0) {
+      throw "_locales/$locale/messages.json is missing required messages:$([Environment]::NewLine)$(($missingMessages | ForEach-Object { "  - $_" }) -join [Environment]::NewLine)"
+    }
+
+    foreach ($messageName in $RequiredLocaleMessages) {
+      $messageProperty = $messages.PSObject.Properties[$messageName]
+      $messageValue = [string]$messageProperty.Value.message
+      if ([string]::IsNullOrWhiteSpace($messageValue)) {
+        throw "_locales/$locale/messages.json has an empty message for '$messageName'."
+      }
+    }
   }
 }
 
@@ -181,7 +292,7 @@ function Assert-NoPackagedFootguns {
     @{ Name = "insecure HTTP URL"; Regex = "http://" }
   )
 
-  $packagedTextFiles = @("scripts/background.js", "scripts/content.js", "scripts/popup.js", "styles/styles.css", "views/popup.html", "manifest.json")
+  $packagedTextFiles = Get-PackagedTextFiles
   $findings = New-Object System.Collections.Generic.List[string]
 
   foreach ($relativePath in $packagedTextFiles) {
@@ -238,6 +349,7 @@ function Assert-PackageHasNoPrivateFiles {
 Push-Location $RepoRoot
 try {
   Assert-ManifestSecurity
+  Assert-Locales
   Assert-NoTextLeaks
   Assert-NoPngTextMetadata
   Assert-NoPackagedFootguns

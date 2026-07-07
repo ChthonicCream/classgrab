@@ -1,0 +1,193 @@
+{
+  "extensionName": {
+    "message": "ClassGrab"
+  },
+  "extensionDescription": {
+    "message": "从一个弹出窗口批量下载受支持的 Google Classroom 附件。"
+  },
+  "availableFiles": {
+    "message": "可用文件"
+  },
+  "selectAll": {
+    "message": "全选"
+  },
+  "downloadSelected": {
+    "message": "下载所选"
+  },
+  "downloadAll": {
+    "message": "全部下载"
+  },
+  "toggleTheme": {
+    "message": "切换深色/浅色模式"
+  },
+  "viewSource": {
+    "message": "在 GitHub 上查看源代码"
+  },
+  "fileListLabel": {
+    "message": "可下载文件列表"
+  },
+  "switchToLightMode": {
+    "message": "切换到浅色模式"
+  },
+  "switchToDarkMode": {
+    "message": "切换到深色模式"
+  },
+  "requestFailed": {
+    "message": "请求失败。"
+  },
+  "precheckFallbackNote": {
+    "message": "ClassGrab 无法预检查此 Drive 文件，因此已启动正常下载流程。"
+  },
+  "driveConfirmationResolvedNote": {
+    "message": "Google Drive 需要确认步骤；ClassGrab 已自动处理。"
+  },
+  "driveConfirmationManualNote": {
+    "message": "Google Drive 返回了确认页面，ClassGrab 无法自动处理。"
+  },
+  "downloadTrackingSaveWarning": {
+    "message": "$FILE$ 已开始，但无法保存状态跟踪。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "manualConfirmationOpenError": {
+    "message": "无法为 $FILE$ 打开手动确认：$ERROR$",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "selectAtLeastOneFile": {
+    "message": "请至少选择一个要下载的文件。"
+  },
+  "preparingFiles": {
+    "message": "正在准备 $COUNT$ 个文件...",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryStarted": {
+    "message": "$COUNT$ 个已开始",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryManual": {
+    "message": "$COUNT$ 个已打开等待手动确认",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryFailed": {
+    "message": "$COUNT$ 个失败",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryDriveHandling": {
+    "message": "$COUNT$ 个需要额外的 Drive 处理",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "noDownloadsStarted": {
+    "message": "没有开始任何下载。"
+  },
+  "notGoogleClassroom": {
+    "message": "不是 Google Classroom"
+  },
+  "classroomOnly": {
+    "message": "此扩展程序仅适用于 Google Classroom 页面。"
+  },
+  "openClassroom": {
+    "message": "打开 Classroom"
+  },
+  "activeTabReadError": {
+    "message": "ClassGrab 无法读取当前标签页。请重新打开弹出窗口。"
+  },
+  "classroomConnectError": {
+    "message": "ClassGrab 无法连接到此 Classroom 标签页。请刷新 Classroom 页面，然后重新打开 ClassGrab。"
+  },
+  "unexpectedClassroomResponse": {
+    "message": "ClassGrab 从 Classroom 标签页收到意外响应。"
+  },
+  "refreshClassroomRetry": {
+    "message": "请刷新 Classroom 页面后重试。"
+  },
+  "noSupportedFiles": {
+    "message": "未找到受支持的 Classroom 附件文件。"
+  },
+  "openClassPost": {
+    "message": "打开班级帖子、作业，或刷新页面。"
+  },
+  "fileFailed": {
+    "message": "$FILE$ 失败：$ERROR$",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "downloadVerificationWarning": {
+    "message": "$FILE$ 已完成，但 ClassGrab 无法验证下载文件类型。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "htmlDownloadWarning": {
+    "message": "$FILE$ 下载成了 HTML 页面。请打开原始 Drive 文件并使用“仍然下载”。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "statusReady": {
+    "message": "就绪"
+  },
+  "statusPreparing": {
+    "message": "准备中"
+  },
+  "statusStarted": {
+    "message": "已开始"
+  },
+  "statusComplete": {
+    "message": "完成"
+  },
+  "statusFailed": {
+    "message": "失败"
+  },
+  "statusManual": {
+    "message": "手动"
+  },
+  "statusTrackingWarning": {
+    "message": "跟踪警告"
+  },
+  "statusUnknown": {
+    "message": "状态未知"
+  },
+  "statusHtmlWarning": {
+    "message": "HTML 警告"
+  }
+}

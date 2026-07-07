@@ -6,11 +6,119 @@ const statusPanel = document.getElementById("statusPanel");
 const darkModeButton = document.getElementById("darkModeButton");
 const body = document.getElementById("body");
 const SVG_NS = "http://www.w3.org/2000/svg";
+const fallbackMessages = {
+    extensionName: "ClassGrab",
+    availableFiles: "Available Files",
+    selectAll: "Select All",
+    downloadSelected: "Download Selected",
+    downloadAll: "Download All",
+    toggleTheme: "Toggle dark/light mode",
+    viewSource: "View source code on GitHub",
+    fileListLabel: "List of downloadable files",
+    switchToLightMode: "Switch to Light Mode",
+    switchToDarkMode: "Switch to Dark Mode",
+    requestFailed: "Request failed.",
+    precheckFallbackNote: "ClassGrab could not pre-check this Drive file, so it started the normal download flow.",
+    driveConfirmationResolvedNote: "Google Drive required a confirmation step; ClassGrab resolved it automatically.",
+    driveConfirmationManualNote: "Google Drive returned a confirmation page that ClassGrab could not resolve automatically.",
+    downloadTrackingSaveWarning: "$1 started, but status tracking could not be saved.",
+    manualConfirmationOpenError: "Could not open manual confirmation for $1: $2",
+    selectAtLeastOneFile: "Select at least one file to download.",
+    preparingFiles: "Preparing $1 file(s)...",
+    summaryStarted: "$1 started",
+    summaryManual: "$1 opened for manual confirmation",
+    summaryFailed: "$1 failed",
+    summaryDriveHandling: "$1 needed extra Drive handling",
+    noDownloadsStarted: "No downloads were started.",
+    notGoogleClassroom: "Not Google Classroom",
+    classroomOnly: "This extension only works on Google Classroom pages.",
+    openClassroom: "Open Classroom",
+    activeTabReadError: "ClassGrab could not read the active tab. Try reopening the popup.",
+    classroomConnectError: "ClassGrab could not connect to this Classroom tab. Refresh the Classroom page, then open ClassGrab again.",
+    unexpectedClassroomResponse: "ClassGrab received an unexpected response from the Classroom tab.",
+    refreshClassroomRetry: "Refresh the Classroom page and try again.",
+    noSupportedFiles: "No supported Classroom attachment files found.",
+    openClassPost: "Open a class post, assignment, or refresh the page.",
+    fileFailed: "$1 failed: $2",
+    downloadVerificationWarning: "$1 finished, but ClassGrab could not verify the downloaded file type.",
+    htmlDownloadWarning: "$1 downloaded as an HTML page. Open the original Drive file and use Download anyway.",
+    statusReady: "ready",
+    statusPreparing: "preparing",
+    statusStarted: "started",
+    statusComplete: "complete",
+    statusFailed: "failed",
+    statusManual: "manual",
+    statusTrackingWarning: "tracking warning",
+    statusUnknown: "status unknown",
+    statusHtmlWarning: "html warning",
+};
+const statusMessageKeys = {
+    ready: "statusReady",
+    preparing: "statusPreparing",
+    started: "statusStarted",
+    complete: "statusComplete",
+    failed: "statusFailed",
+    manual: "statusManual",
+    "tracking warning": "statusTrackingWarning",
+    "status unknown": "statusUnknown",
+    "html warning": "statusHtmlWarning",
+};
 
 let authuser = null;
 let files = [];
 const fileStatusElements = new Map();
 const pendingDownloads = new Map();
+
+function t(messageName, substitutions = []) {
+    const values = Array.isArray(substitutions) ? substitutions : [substitutions];
+    const i18n =
+        typeof chrome !== "undefined" &&
+        chrome.i18n &&
+        typeof chrome.i18n.getMessage === "function"
+            ? chrome.i18n
+            : null;
+    const message = i18n
+        ? (values.length > 0 ? i18n.getMessage(messageName, values) : i18n.getMessage(messageName))
+        : "";
+
+    if (message) {
+        return message;
+    }
+
+    let fallback = fallbackMessages[messageName] || "";
+    values.forEach((value, index) => {
+        fallback = fallback.split(`$${index + 1}`).join(String(value));
+    });
+    return fallback || messageName;
+}
+
+function applyLocalizedText() {
+    if (
+        typeof chrome !== "undefined" &&
+        chrome.i18n &&
+        typeof chrome.i18n.getUILanguage === "function"
+    ) {
+        const uiLanguage = chrome.i18n.getUILanguage();
+        if (uiLanguage) {
+            document.documentElement.lang = uiLanguage.replace("_", "-");
+        }
+    }
+
+    document.title = t("extensionName");
+
+    document.querySelectorAll("[data-i18n]").forEach((element) => {
+        element.textContent = t(element.dataset.i18n);
+    });
+
+    document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
+        element.setAttribute("aria-label", t(element.dataset.i18nAriaLabel));
+    });
+}
+
+function localizedStatusLabel(label) {
+    const messageKey = statusMessageKeys[label];
+    return messageKey ? t(messageKey) : label;
+}
 
 function createSvgElement(tagName, attributes = {}) {
     const element = document.createElementNS(SVG_NS, tagName);
@@ -116,7 +224,7 @@ function updateFileStatus(fileId, label, type = "muted") {
         return;
     }
 
-    statusElement.textContent = label;
+    statusElement.textContent = localizedStatusLabel(label);
     statusElement.className = `file-status file-status-${type}`;
 }
 
@@ -129,7 +237,7 @@ function sendRuntimeMessage(message) {
             }
 
             if (response && response.ok === false) {
-                reject(new Error(response.error || "Request failed."));
+                reject(new Error(response.error || t("requestFailed")));
                 return;
             }
 
@@ -232,7 +340,7 @@ async function prepareDownloadUrl(file) {
     } catch (error) {
         return {
             url: downloadUrl,
-            note: "ClassGrab could not pre-check this Drive file, so it started the normal download flow.",
+            note: t("precheckFallbackNote"),
         };
     }
 
@@ -258,13 +366,13 @@ async function prepareDownloadUrl(file) {
     if (confirmedUrl) {
         return {
             url: withAuthUser(confirmedUrl),
-            note: "Google Drive required a confirmation step; ClassGrab resolved it automatically.",
+            note: t("driveConfirmationResolvedNote"),
         };
     }
 
     return {
         manualUrl: file.viewUrl || file.originalUrl || finalUrl,
-        note: "Google Drive returned a confirmation page that ClassGrab could not resolve automatically.",
+        note: t("driveConfirmationManualNote"),
     };
 }
 
@@ -291,7 +399,7 @@ function startDownload(file, url) {
                 pendingDownloads.set(downloadId, file);
                 trackDownload(downloadId, file).catch((error) => {
                     updateFileStatus(file.id, "tracking warning", "warning");
-                    setStatus(`${file.name} started, but status tracking could not be saved.`, "warning");
+                    setStatus(t("downloadTrackingSaveWarning", file.name), "warning");
                     console.error("ClassGrab download tracking failed:", error);
                 });
                 resolve(downloadId);
@@ -334,19 +442,19 @@ function openManualDownload(file, url) {
     chrome.tabs.create({ url: withAuthUser(url) }, () => {
         if (chrome.runtime.lastError) {
             updateFileStatus(file.id, "failed", "error");
-            setStatus(`Could not open manual confirmation for ${file.name}: ${chrome.runtime.lastError.message}`, "error");
+            setStatus(t("manualConfirmationOpenError", [file.name, chrome.runtime.lastError.message]), "error");
         }
     });
 }
 
 async function downloadBatch(targetFiles) {
     if (targetFiles.length === 0) {
-        setStatus("Select at least one file to download.", "warning");
+        setStatus(t("selectAtLeastOneFile"), "warning");
         return;
     }
 
     setControlsDisabled(true);
-    setStatus(`Preparing ${targetFiles.length} file${targetFiles.length === 1 ? "" : "s"}...`, "info");
+    setStatus(t("preparingFiles", String(targetFiles.length)), "info");
 
     let started = 0;
     let manual = 0;
@@ -380,12 +488,12 @@ async function downloadBatch(targetFiles) {
     }
 
     const summary = [];
-    if (started) summary.push(`${started} started`);
-    if (manual) summary.push(`${manual} opened for manual confirmation`);
-    if (failed) summary.push(`${failed} failed`);
-    if (notes) summary.push(`${notes} needed extra Drive handling`);
+    if (started) summary.push(t("summaryStarted", String(started)));
+    if (manual) summary.push(t("summaryManual", String(manual)));
+    if (failed) summary.push(t("summaryFailed", String(failed)));
+    if (notes) summary.push(t("summaryDriveHandling", String(notes)));
 
-    setStatus(summary.length ? summary.join(", ") : "No downloads were started.", failed ? "error" : manual ? "warning" : "success");
+    setStatus(summary.length ? summary.join(", ") : t("noDownloadsStarted"), failed ? "error" : manual ? "warning" : "success");
     setControlsDisabled(false);
     restoreStoredStatuses();
 }
@@ -399,17 +507,17 @@ function renderUnsupportedPage() {
     icon.textContent = "!";
 
     const heading = document.createElement("h2");
-    heading.textContent = "Not Google Classroom";
+    heading.textContent = t("notGoogleClassroom");
 
     const copy = document.createElement("p");
-    copy.textContent = "This extension only works on Google Classroom pages.";
+    copy.textContent = t("classroomOnly");
 
     const link = document.createElement("a");
     link.href = "https://classroom.google.com";
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.className = "primary-btn accent-btn center-btn";
-    link.textContent = "Open Classroom";
+    link.textContent = t("openClassroom");
 
     container.appendChild(icon);
     container.appendChild(heading);
@@ -488,7 +596,7 @@ function renderFiles(nextFiles) {
 
         const status = document.createElement("span");
         status.className = "file-status file-status-muted";
-        status.textContent = "ready";
+        status.textContent = localizedStatusLabel("ready");
         fileStatusElements.set(file.id, status);
 
         li.appendChild(checkboxWrapper);
@@ -515,7 +623,7 @@ function renderFiles(nextFiles) {
 
 function updateThemeUI(isDark) {
     darkModeButton.replaceChildren(createThemeIcon(isDark));
-    darkModeButton.setAttribute("title", isDark ? "Switch to Light Mode" : "Switch to Dark Mode");
+    darkModeButton.setAttribute("title", t(isDark ? "switchToLightMode" : "switchToDarkMode"));
 }
 
 function initializeTheme() {
@@ -530,7 +638,7 @@ function initializeTheme() {
 function loadFilesFromActiveTab() {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (chrome.runtime.lastError) {
-            renderEmptyState("ClassGrab could not read the active tab. Try reopening the popup.");
+            renderEmptyState(t("activeTabReadError"));
             setStatus(chrome.runtime.lastError.message, "error");
             return;
         }
@@ -547,19 +655,19 @@ function loadFilesFromActiveTab() {
 
         chrome.tabs.sendMessage(currentTab.id, { action: "getDriveLinks" }, (response) => {
             if (chrome.runtime.lastError) {
-                renderEmptyState("ClassGrab could not connect to this Classroom tab. Refresh the Classroom page, then open ClassGrab again.");
+                renderEmptyState(t("classroomConnectError"));
                 setStatus(chrome.runtime.lastError.message, "error");
                 return;
             }
 
             if (!response || !Array.isArray(response.files)) {
-                renderEmptyState("ClassGrab received an unexpected response from the Classroom tab.");
-                setStatus("Refresh the Classroom page and try again.", "error");
+                renderEmptyState(t("unexpectedClassroomResponse"));
+                setStatus(t("refreshClassroomRetry"), "error");
                 return;
             }
 
             if (response.files.length === 0) {
-                renderEmptyState("No supported Classroom attachment files found.", "Open a class post, assignment, or refresh the page.");
+                renderEmptyState(t("noSupportedFiles"), t("openClassPost"));
                 return;
             }
 
@@ -597,7 +705,7 @@ chrome.downloads.onChanged.addListener((delta) => {
 
     if (delta.error) {
         updateFileStatus(file.id, "failed", "error");
-        setStatus(`${file.name} failed: ${delta.error.current}`, "error");
+        setStatus(t("fileFailed", [file.name, delta.error.current]), "error");
         pendingDownloads.delete(delta.id);
         return;
     }
@@ -609,7 +717,7 @@ chrome.downloads.onChanged.addListener((delta) => {
     chrome.downloads.search({ id: delta.id }, (items) => {
         if (chrome.runtime.lastError) {
             updateFileStatus(file.id, "status unknown", "warning");
-            setStatus(`${file.name} finished, but ClassGrab could not verify the downloaded file type.`, "warning");
+            setStatus(t("downloadVerificationWarning", file.name), "warning");
             console.error("ClassGrab download verification failed:", chrome.runtime.lastError);
             pendingDownloads.delete(delta.id);
             return;
@@ -622,7 +730,7 @@ chrome.downloads.onChanged.addListener((delta) => {
 
         if (isHtmlDownload) {
             updateFileStatus(file.id, "html warning", "warning");
-            setStatus(`${file.name} downloaded as an HTML page. Open the original Drive file and use Download anyway.`, "warning");
+            setStatus(t("htmlDownloadWarning", file.name), "warning");
         } else {
             updateFileStatus(file.id, "complete", "success");
         }
@@ -631,5 +739,6 @@ chrome.downloads.onChanged.addListener((delta) => {
     });
 });
 
+applyLocalizedText();
 initializeTheme();
 loadFilesFromActiveTab();

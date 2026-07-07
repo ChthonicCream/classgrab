@@ -9,7 +9,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
-$PackageRoots = @("icons", "scripts", "styles", "views", "manifest.json")
+$PackageRoots = @("icons", "scripts", "styles", "views", "_locales", "manifest.json")
 $VersionPattern = "\d+(?:\.\d+){1,3}"
 
 function Invoke-CheckedCommand {
@@ -243,7 +243,7 @@ try {
   Invoke-CheckedCommand -Command "node" -Arguments @("--check", "scripts/content.js")
   Invoke-CheckedCommand -Command "node" -Arguments @("--check", "scripts/popup.js")
   Invoke-CheckedCommand -Command "node" -Arguments @("--check", "scripts/background.js")
-  Invoke-CheckedCommand -Command "git" -Arguments @("diff", "--check")
+  Invoke-CheckedCommand -Command "git" -Arguments @("diff", "--check", "HEAD", "--")
 
   $expectedEntries = Get-ExpectedPackageEntries
   $resolvedOutputPath = if ([IO.Path]::IsPathRooted($OutputPath)) {

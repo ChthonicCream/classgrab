@@ -1,0 +1,193 @@
+{
+  "extensionName": {
+    "message": "ClassGrab"
+  },
+  "extensionDescription": {
+    "message": "Tải hàng loạt các tệp đính kèm Google Classroom được hỗ trợ từ một cửa sổ bật lên."
+  },
+  "availableFiles": {
+    "message": "Tệp có sẵn"
+  },
+  "selectAll": {
+    "message": "Chọn tất cả"
+  },
+  "downloadSelected": {
+    "message": "Tải tệp đã chọn"
+  },
+  "downloadAll": {
+    "message": "Tải tất cả"
+  },
+  "toggleTheme": {
+    "message": "Chuyển chế độ tối/sáng"
+  },
+  "viewSource": {
+    "message": "Xem mã nguồn trên GitHub"
+  },
+  "fileListLabel": {
+    "message": "Danh sách tệp có thể tải xuống"
+  },
+  "switchToLightMode": {
+    "message": "Chuyển sang chế độ sáng"
+  },
+  "switchToDarkMode": {
+    "message": "Chuyển sang chế độ tối"
+  },
+  "requestFailed": {
+    "message": "Yêu cầu không thành công."
+  },
+  "precheckFallbackNote": {
+    "message": "ClassGrab không thể kiểm tra trước tệp Drive này, nên đã bắt đầu quy trình tải xuống thông thường."
+  },
+  "driveConfirmationResolvedNote": {
+    "message": "Google Drive yêu cầu bước xác nhận; ClassGrab đã tự động xử lý."
+  },
+  "driveConfirmationManualNote": {
+    "message": "Google Drive trả về trang xác nhận mà ClassGrab không thể tự động xử lý."
+  },
+  "downloadTrackingSaveWarning": {
+    "message": "$FILE$ đã bắt đầu, nhưng không thể lưu theo dõi trạng thái.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "manualConfirmationOpenError": {
+    "message": "Không thể mở xác nhận thủ công cho $FILE$: $ERROR$",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "selectAtLeastOneFile": {
+    "message": "Chọn ít nhất một tệp để tải xuống."
+  },
+  "preparingFiles": {
+    "message": "Đang chuẩn bị $COUNT$ tệp...",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryStarted": {
+    "message": "$COUNT$ đã bắt đầu",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryManual": {
+    "message": "$COUNT$ đã mở để xác nhận thủ công",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryFailed": {
+    "message": "$COUNT$ thất bại",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryDriveHandling": {
+    "message": "$COUNT$ cần xử lý Drive bổ sung",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "noDownloadsStarted": {
+    "message": "Không có lượt tải xuống nào được bắt đầu."
+  },
+  "notGoogleClassroom": {
+    "message": "Không phải Google Classroom"
+  },
+  "classroomOnly": {
+    "message": "Tiện ích này chỉ hoạt động trên các trang Google Classroom."
+  },
+  "openClassroom": {
+    "message": "Mở Classroom"
+  },
+  "activeTabReadError": {
+    "message": "ClassGrab không thể đọc thẻ đang hoạt động. Hãy mở lại cửa sổ bật lên."
+  },
+  "classroomConnectError": {
+    "message": "ClassGrab không thể kết nối với thẻ Classroom này. Hãy làm mới trang Classroom rồi mở lại ClassGrab."
+  },
+  "unexpectedClassroomResponse": {
+    "message": "ClassGrab nhận được phản hồi không mong đợi từ thẻ Classroom."
+  },
+  "refreshClassroomRetry": {
+    "message": "Hãy làm mới trang Classroom và thử lại."
+  },
+  "noSupportedFiles": {
+    "message": "Không tìm thấy tệp đính kèm Classroom được hỗ trợ."
+  },
+  "openClassPost": {
+    "message": "Mở bài đăng, bài tập của lớp hoặc làm mới trang."
+  },
+  "fileFailed": {
+    "message": "$FILE$ thất bại: $ERROR$",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "downloadVerificationWarning": {
+    "message": "$FILE$ đã hoàn tất, nhưng ClassGrab không thể xác minh loại tệp đã tải xuống.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "htmlDownloadWarning": {
+    "message": "$FILE$ đã tải xuống dưới dạng trang HTML. Mở tệp Drive gốc và dùng tùy chọn Vẫn tải xuống.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "statusReady": {
+    "message": "sẵn sàng"
+  },
+  "statusPreparing": {
+    "message": "đang chuẩn bị"
+  },
+  "statusStarted": {
+    "message": "đã bắt đầu"
+  },
+  "statusComplete": {
+    "message": "hoàn tất"
+  },
+  "statusFailed": {
+    "message": "thất bại"
+  },
+  "statusManual": {
+    "message": "thủ công"
+  },
+  "statusTrackingWarning": {
+    "message": "cảnh báo theo dõi"
+  },
+  "statusUnknown": {
+    "message": "không rõ trạng thái"
+  },
+  "statusHtmlWarning": {
+    "message": "cảnh báo HTML"
+  }
+}

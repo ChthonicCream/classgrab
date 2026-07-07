@@ -1,0 +1,193 @@
+{
+  "extensionName": {
+    "message": "ClassGrab"
+  },
+  "extensionDescription": {
+    "message": "Descarga en lote los archivos adjuntos compatibles de Google Classroom desde una sola ventana emergente."
+  },
+  "availableFiles": {
+    "message": "Archivos disponibles"
+  },
+  "selectAll": {
+    "message": "Seleccionar todo"
+  },
+  "downloadSelected": {
+    "message": "Descargar seleccionados"
+  },
+  "downloadAll": {
+    "message": "Descargar todo"
+  },
+  "toggleTheme": {
+    "message": "Alternar modo oscuro/claro"
+  },
+  "viewSource": {
+    "message": "Ver código fuente en GitHub"
+  },
+  "fileListLabel": {
+    "message": "Lista de archivos descargables"
+  },
+  "switchToLightMode": {
+    "message": "Cambiar al modo claro"
+  },
+  "switchToDarkMode": {
+    "message": "Cambiar al modo oscuro"
+  },
+  "requestFailed": {
+    "message": "La solicitud falló."
+  },
+  "precheckFallbackNote": {
+    "message": "ClassGrab no pudo comprobar este archivo de Drive previamente, así que inició el flujo normal de descarga."
+  },
+  "driveConfirmationResolvedNote": {
+    "message": "Google Drive requirió un paso de confirmación; ClassGrab lo resolvió automáticamente."
+  },
+  "driveConfirmationManualNote": {
+    "message": "Google Drive devolvió una página de confirmación que ClassGrab no pudo resolver automáticamente."
+  },
+  "downloadTrackingSaveWarning": {
+    "message": "Se inició $FILE$, pero no se pudo guardar el seguimiento del estado.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "manualConfirmationOpenError": {
+    "message": "No se pudo abrir la confirmación manual para $FILE$: $ERROR$",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "selectAtLeastOneFile": {
+    "message": "Selecciona al menos un archivo para descargar."
+  },
+  "preparingFiles": {
+    "message": "Preparando $COUNT$ archivo(s)...",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryStarted": {
+    "message": "$COUNT$ descarga(s) iniciada(s)",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryManual": {
+    "message": "$COUNT$ abierto(s) para confirmación manual",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryFailed": {
+    "message": "$COUNT$ fallido(s)",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryDriveHandling": {
+    "message": "$COUNT$ necesitaron manejo adicional de Drive",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "noDownloadsStarted": {
+    "message": "No se inició ninguna descarga."
+  },
+  "notGoogleClassroom": {
+    "message": "No es Google Classroom"
+  },
+  "classroomOnly": {
+    "message": "Esta extensión solo funciona en páginas de Google Classroom."
+  },
+  "openClassroom": {
+    "message": "Abrir Classroom"
+  },
+  "activeTabReadError": {
+    "message": "ClassGrab no pudo leer la pestaña activa. Vuelve a abrir la ventana emergente."
+  },
+  "classroomConnectError": {
+    "message": "ClassGrab no pudo conectarse a esta pestaña de Classroom. Actualiza la página de Classroom y vuelve a abrir ClassGrab."
+  },
+  "unexpectedClassroomResponse": {
+    "message": "ClassGrab recibió una respuesta inesperada de la pestaña de Classroom."
+  },
+  "refreshClassroomRetry": {
+    "message": "Actualiza la página de Classroom e inténtalo de nuevo."
+  },
+  "noSupportedFiles": {
+    "message": "No se encontraron archivos adjuntos compatibles de Classroom."
+  },
+  "openClassPost": {
+    "message": "Abre una publicación o tarea de la clase, o actualiza la página."
+  },
+  "fileFailed": {
+    "message": "$FILE$ falló: $ERROR$",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "downloadVerificationWarning": {
+    "message": "$FILE$ terminó, pero ClassGrab no pudo verificar el tipo de archivo descargado.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "htmlDownloadWarning": {
+    "message": "$FILE$ se descargó como una página HTML. Abre el archivo original de Drive y usa Descargar de todos modos.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "statusReady": {
+    "message": "listo"
+  },
+  "statusPreparing": {
+    "message": "preparando"
+  },
+  "statusStarted": {
+    "message": "iniciado"
+  },
+  "statusComplete": {
+    "message": "completo"
+  },
+  "statusFailed": {
+    "message": "falló"
+  },
+  "statusManual": {
+    "message": "manual"
+  },
+  "statusTrackingWarning": {
+    "message": "aviso de seguimiento"
+  },
+  "statusUnknown": {
+    "message": "estado desconocido"
+  },
+  "statusHtmlWarning": {
+    "message": "aviso HTML"
+  }
+}

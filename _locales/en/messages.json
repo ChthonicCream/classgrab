@@ -1,0 +1,193 @@
+{
+  "extensionName": {
+    "message": "ClassGrab"
+  },
+  "extensionDescription": {
+    "message": "Bulk download supported Google Classroom attachments from one popup."
+  },
+  "availableFiles": {
+    "message": "Available Files"
+  },
+  "selectAll": {
+    "message": "Select All"
+  },
+  "downloadSelected": {
+    "message": "Download Selected"
+  },
+  "downloadAll": {
+    "message": "Download All"
+  },
+  "toggleTheme": {
+    "message": "Toggle dark/light mode"
+  },
+  "viewSource": {
+    "message": "View source code on GitHub"
+  },
+  "fileListLabel": {
+    "message": "List of downloadable files"
+  },
+  "switchToLightMode": {
+    "message": "Switch to Light Mode"
+  },
+  "switchToDarkMode": {
+    "message": "Switch to Dark Mode"
+  },
+  "requestFailed": {
+    "message": "Request failed."
+  },
+  "precheckFallbackNote": {
+    "message": "ClassGrab could not pre-check this Drive file, so it started the normal download flow."
+  },
+  "driveConfirmationResolvedNote": {
+    "message": "Google Drive required a confirmation step; ClassGrab resolved it automatically."
+  },
+  "driveConfirmationManualNote": {
+    "message": "Google Drive returned a confirmation page that ClassGrab could not resolve automatically."
+  },
+  "downloadTrackingSaveWarning": {
+    "message": "$FILE$ started, but status tracking could not be saved.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "manualConfirmationOpenError": {
+    "message": "Could not open manual confirmation for $FILE$: $ERROR$",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "selectAtLeastOneFile": {
+    "message": "Select at least one file to download."
+  },
+  "preparingFiles": {
+    "message": "Preparing $COUNT$ file(s)...",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryStarted": {
+    "message": "$COUNT$ started",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryManual": {
+    "message": "$COUNT$ opened for manual confirmation",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryFailed": {
+    "message": "$COUNT$ failed",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "summaryDriveHandling": {
+    "message": "$COUNT$ needed extra Drive handling",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "noDownloadsStarted": {
+    "message": "No downloads were started."
+  },
+  "notGoogleClassroom": {
+    "message": "Not Google Classroom"
+  },
+  "classroomOnly": {
+    "message": "This extension only works on Google Classroom pages."
+  },
+  "openClassroom": {
+    "message": "Open Classroom"
+  },
+  "activeTabReadError": {
+    "message": "ClassGrab could not read the active tab. Try reopening the popup."
+  },
+  "classroomConnectError": {
+    "message": "ClassGrab could not connect to this Classroom tab. Refresh the Classroom page, then open ClassGrab again."
+  },
+  "unexpectedClassroomResponse": {
+    "message": "ClassGrab received an unexpected response from the Classroom tab."
+  },
+  "refreshClassroomRetry": {
+    "message": "Refresh the Classroom page and try again."
+  },
+  "noSupportedFiles": {
+    "message": "No supported Classroom attachment files found."
+  },
+  "openClassPost": {
+    "message": "Open a class post, assignment, or refresh the page."
+  },
+  "fileFailed": {
+    "message": "$FILE$ failed: $ERROR$",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "downloadVerificationWarning": {
+    "message": "$FILE$ finished, but ClassGrab could not verify the downloaded file type.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "htmlDownloadWarning": {
+    "message": "$FILE$ downloaded as an HTML page. Open the original Drive file and use Download anyway.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "statusReady": {
+    "message": "ready"
+  },
+  "statusPreparing": {
+    "message": "preparing"
+  },
+  "statusStarted": {
+    "message": "started"
+  },
+  "statusComplete": {
+    "message": "complete"
+  },
+  "statusFailed": {
+    "message": "failed"
+  },
+  "statusManual": {
+    "message": "manual"
+  },
+  "statusTrackingWarning": {
+    "message": "tracking warning"
+  },
+  "statusUnknown": {
+    "message": "status unknown"
+  },
+  "statusHtmlWarning": {
+    "message": "html warning"
+  }
+}

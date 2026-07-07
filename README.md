@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.1-6366f1?style=for-the-badge">
-  <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-available%20v1.1.1-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
-  <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-available%20v1.1.1-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.2-6366f1?style=for-the-badge">
+  <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-available%20v1.1.2-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
+  <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-available%20v1.1.2-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
 </p>
 
 ClassGrab is a small Chromium extension for students and teachers who want to save the files attached to a Google Classroom post without opening each attachment one by one.
@@ -29,15 +29,16 @@ It is intended for **Google Chrome** and **Microsoft Edge** only. Requests for F
 - Shows visible per-file status and remembers recent outcomes after the popup closes.
 - Deduplicates repeated Classroom anchors for the same attachment.
 - Dark and light popup themes.
+- Localized extension metadata and popup text for English, Spanish, French, Simplified Chinese, and Vietnamese.
 
 ## Store Availability
 
-ClassGrab v1.1.1 is available for:
+ClassGrab v1.1.2 is available for:
 
 - Chrome Web Store
 - Microsoft Edge Add-ons
 
-ClassGrab v1.0.0 was the first store release. Other browser stores are not part of the current release scope. Open a feature request if you want another browser supported.
+Packaged locales are English, Spanish, French, Simplified Chinese, and Vietnamese. ClassGrab v1.0.0 was the first store release. Other browser stores are not part of the current release scope. Open a feature request if you want another browser supported.
 
 ## Installation
 
@@ -69,6 +70,12 @@ ClassGrab v1.0.0 was the first store release. Other browser stores are not part 
 | Unsupported links | Ignored for now |
 
 ## Versions
+
+### v1.1.2
+
+- Added localized extension metadata and popup text for English, Spanish, French, Simplified Chinese, and Vietnamese.
+- Added release/security checks for locale package drift and required message coverage.
+- Updated the publishing guide with Chrome and Edge localization steps.
 
 ### v1.1.1
 
@@ -134,9 +141,9 @@ Before preparing a store update, run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\release.ps1
 ```
 
-The command verifies the version in `manifest.json`, the popup badge, and README release markers, runs JavaScript syntax checks plus `git diff --check`, rebuilds `ClassGrab.zip`, and rejects package contents that do not match the tracked store upload files.
+The command verifies the version in `manifest.json`, the popup badge, and README release markers, runs JavaScript syntax checks plus `git diff --check`, rebuilds `ClassGrab.zip`, and rejects package contents that do not match the tracked store upload files, including `_locales/`.
 
-It also runs `tools/security-check.ps1`, which gates reviewed permissions, common secret and personal-data patterns, PNG text metadata, remote script/style loads, unsafe HTML injection APIs, and private files in the release package.
+It also runs `tools/security-check.ps1`, which gates reviewed permissions, required locale files/messages, common secret and personal-data patterns, PNG text metadata, remote script/style loads, unsafe HTML injection APIs, and private files in the release package.
 
 ## Acknowledgements
 

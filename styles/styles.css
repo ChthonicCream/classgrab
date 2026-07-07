@@ -533,6 +533,7 @@ body.dm .ext-py {
 
 .primary-btn {
   flex: 1;
+  min-width: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -541,11 +542,18 @@ body.dm .ext-py {
   color: white;
   font-size: 0.85rem;
   font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .primary-btn:disabled {
