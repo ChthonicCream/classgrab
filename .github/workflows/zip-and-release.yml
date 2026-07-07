@@ -26,9 +26,10 @@ jobs:
           VERSION=$(jq -r '.version' manifest.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create ZIP
+      - name: Build and verify release ZIP
+        shell: pwsh
         run: |
-          zip -r classgrab-v${{ steps.manifest.outputs.version }}.zip icons scripts styles views manifest.json
+          ./tools/release.ps1 -OutputPath classgrab-v${{ steps.manifest.outputs.version }}.zip
 
       - name: Push as a github release
         uses: ncipollo/release-action@v1

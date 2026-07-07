@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.0-6366f1?style=for-the-badge">
-  <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-available%20v1.1.0-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
-  <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-available%20v1.1.0-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.1-6366f1?style=for-the-badge">
+  <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-available%20v1.1.1-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
+  <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-available%20v1.1.1-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
 </p>
 
 ClassGrab is a small Chromium extension for students and teachers who want to save the files attached to a Google Classroom post without opening each attachment one by one.
@@ -32,7 +32,7 @@ It is intended for **Google Chrome** and **Microsoft Edge** only. Requests for F
 
 ## Store Availability
 
-ClassGrab v1.1.0 is available for:
+ClassGrab v1.1.1 is available for:
 
 - Chrome Web Store
 - Microsoft Edge Add-ons
@@ -69,6 +69,13 @@ ClassGrab v1.0.0 was the first store release. Other browser stores are not part 
 | Unsupported links | Ignored for now |
 
 ## Versions
+
+### v1.1.1
+
+- Added a reproducible release command for local and GitHub release packaging.
+- Added automated security and privacy checks for permissions, secrets, unsafe HTML APIs, package contents, and PNG metadata.
+- Hardened popup rendering and download status tracking to reduce silent failures and stored URL metadata.
+- Replaced the README preview with a more aggressively redacted v1.1.x screenshot.
 
 ### v1.1.0
 
@@ -118,6 +125,18 @@ No. If the file owner or school administrator disables download permissions, Cla
 ## Contributing
 
 Bug reports and feature requests are welcome. For large changes, open an issue first so the behavior, browser scope, and testing plan are clear before implementation.
+
+### Release Package Check
+
+Before preparing a store update, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\release.ps1
+```
+
+The command verifies the version in `manifest.json`, the popup badge, and README release markers, runs JavaScript syntax checks plus `git diff --check`, rebuilds `ClassGrab.zip`, and rejects package contents that do not match the tracked store upload files.
+
+It also runs `tools/security-check.ps1`, which gates reviewed permissions, common secret and personal-data patterns, remote script/style loads, unsafe HTML injection APIs, and private files in the release package.
 
 ## Acknowledgements
 

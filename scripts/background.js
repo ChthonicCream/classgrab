@@ -1,5 +1,7 @@
 const DOWNLOADS_KEY = "classgrabTrackedDownloads";
 const STATUSES_KEY = "classgrabDownloadStatuses";
+const STATUS_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_STATUSES = 100;
 
 function readStorage(keys) {
     return chrome.storage.local.get(keys);
@@ -16,7 +18,26 @@ function isHtmlDownload(item) {
     return downloadedName.endsWith(".htm") || downloadedName.endsWith(".html") || mime.includes("text/html");
 }
 
+function isValidTrackedFile(file) {
+    return file && typeof file.id === "string" && file.id.length > 0 && file.id.length <= 200;
+}
+
+function pruneStatuses(statuses) {
+    const cutoff = Date.now() - STATUS_RETENTION_MS;
+
+    return Object.fromEntries(
+        Object.entries(statuses)
+            .filter(([, status]) => status && (!status.updatedAt || status.updatedAt >= cutoff))
+            .sort(([, left], [, right]) => (right.updatedAt || 0) - (left.updatedAt || 0))
+            .slice(0, MAX_STATUSES),
+    );
+}
+
 async function updateStoredStatus(file, label, type, message) {
+    if (!isValidTrackedFile(file)) {
+        throw new Error("Invalid tracked file metadata.");
+    }
+
     const current = await readStorage([STATUSES_KEY]);
     const statuses = current[STATUSES_KEY] || {};
 
@@ -27,7 +48,7 @@ async function updateStoredStatus(file, label, type, message) {
         updatedAt: Date.now(),
     };
 
-    await writeStorage({ [STATUSES_KEY]: statuses });
+    await writeStorage({ [STATUSES_KEY]: pruneStatuses(statuses) });
 }
 
 async function removeTrackedDownload(downloadId) {
@@ -40,9 +61,14 @@ async function removeTrackedDownload(downloadId) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "trackDownload") {
+        if (typeof request.downloadId !== "number" || !isValidTrackedFile(request.file)) {
+            sendResponse({ ok: false, error: "Invalid download tracking request." });
+            return false;
+        }
+
         readStorage([DOWNLOADS_KEY]).then((current) => {
             const downloads = current[DOWNLOADS_KEY] || {};
-            downloads[String(request.downloadId)] = request.file;
+            downloads[String(request.downloadId)] = { id: request.file.id };
             return writeStorage({ [DOWNLOADS_KEY]: downloads });
         }).then(() => {
             return updateStoredStatus(request.file, "started", "success", "Download started.");
@@ -57,7 +83,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === "getDownloadStatuses") {
         readStorage([STATUSES_KEY]).then((current) => {
-            sendResponse({ statuses: current[STATUSES_KEY] || {} });
+            const statuses = pruneStatuses(current[STATUSES_KEY] || {});
+            writeStorage({ [STATUSES_KEY]: statuses }).catch((error) => {
+                console.error("ClassGrab status pruning failed:", error);
+            });
+            sendResponse({ statuses });
         }).catch((error) => {
             sendResponse({ statuses: {}, error: error.message });
         });

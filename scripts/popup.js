@@ -5,11 +5,57 @@ const downloadAllButton = document.getElementById("downloadAll");
 const statusPanel = document.getElementById("statusPanel");
 const darkModeButton = document.getElementById("darkModeButton");
 const body = document.getElementById("body");
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 let authuser = null;
 let files = [];
 const fileStatusElements = new Map();
 const pendingDownloads = new Map();
+
+function createSvgElement(tagName, attributes = {}) {
+    const element = document.createElementNS(SVG_NS, tagName);
+
+    Object.entries(attributes).forEach(([name, value]) => {
+        element.setAttribute(name, value);
+    });
+
+    return element;
+}
+
+function appendSvgElement(parent, tagName, attributes = {}) {
+    const element = createSvgElement(tagName, attributes);
+    parent.appendChild(element);
+    return element;
+}
+
+function createThemeIcon(isDark) {
+    const svg = createSvgElement("svg", {
+        xmlns: SVG_NS,
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        "stroke-width": "2.2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+        class: "svg-icon",
+    });
+
+    if (isDark) {
+        appendSvgElement(svg, "circle", { cx: "12", cy: "12", r: "4" });
+        appendSvgElement(svg, "path", { d: "M12 2v2" });
+        appendSvgElement(svg, "path", { d: "M12 20v2" });
+        appendSvgElement(svg, "path", { d: "M4.93 4.93l1.41 1.41" });
+        appendSvgElement(svg, "path", { d: "M17.66 17.66l1.41 1.41" });
+        appendSvgElement(svg, "path", { d: "M2 12h2" });
+        appendSvgElement(svg, "path", { d: "M20 12h2" });
+        appendSvgElement(svg, "path", { d: "M6.34 17.66l-1.41 1.41" });
+        appendSvgElement(svg, "path", { d: "M19.07 4.93l-1.41 1.41" });
+    } else {
+        appendSvgElement(svg, "path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" });
+    }
+
+    return svg;
+}
 
 function setQueryParam(rawUrl, key, value) {
     try {
@@ -72,6 +118,24 @@ function updateFileStatus(fileId, label, type = "muted") {
 
     statusElement.textContent = label;
     statusElement.className = `file-status file-status-${type}`;
+}
+
+function sendRuntimeMessage(message) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(message, (response) => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+                return;
+            }
+
+            if (response && response.ok === false) {
+                reject(new Error(response.error || "Request failed."));
+                return;
+            }
+
+            resolve(response);
+        });
+    });
 }
 
 function getSelectedFiles() {
@@ -225,7 +289,11 @@ function startDownload(file, url) {
                 }
 
                 pendingDownloads.set(downloadId, file);
-                trackDownload(downloadId, file);
+                trackDownload(downloadId, file).catch((error) => {
+                    updateFileStatus(file.id, "tracking warning", "warning");
+                    setStatus(`${file.name} started, but status tracking could not be saved.`, "warning");
+                    console.error("ClassGrab download tracking failed:", error);
+                });
                 resolve(downloadId);
             },
         );
@@ -233,14 +301,11 @@ function startDownload(file, url) {
 }
 
 function trackDownload(downloadId, file) {
-    chrome.runtime.sendMessage({
+    return sendRuntimeMessage({
         action: "trackDownload",
         downloadId,
         file: {
             id: file.id,
-            name: file.name,
-            viewUrl: file.viewUrl,
-            originalUrl: file.originalUrl,
         },
     });
 }
@@ -248,6 +313,7 @@ function trackDownload(downloadId, file) {
 function restoreStoredStatuses() {
     chrome.runtime.sendMessage({ action: "getDownloadStatuses" }, (response) => {
         if (chrome.runtime.lastError || !response || !response.statuses) {
+            console.error("ClassGrab could not restore download statuses:", chrome.runtime.lastError);
             return;
         }
 
@@ -265,7 +331,12 @@ function restoreStoredStatuses() {
 
 function openManualDownload(file, url) {
     updateFileStatus(file.id, "manual", "warning");
-    chrome.tabs.create({ url: withAuthUser(url) });
+    chrome.tabs.create({ url: withAuthUser(url) }, () => {
+        if (chrome.runtime.lastError) {
+            updateFileStatus(file.id, "failed", "error");
+            setStatus(`Could not open manual confirmation for ${file.name}: ${chrome.runtime.lastError.message}`, "error");
+        }
+    });
 }
 
 async function downloadBatch(targetFiles) {
@@ -320,29 +391,52 @@ async function downloadBatch(targetFiles) {
 }
 
 function renderUnsupportedPage() {
-    document.querySelector(".main-content").innerHTML = `
-        <div class="unsupported-container">
-            <div class="unsupported-icon">!</div>
-            <h2>Not Google Classroom</h2>
-            <p>This extension only works on Google Classroom pages.</p>
-            <a href="https://classroom.google.com" target="_blank" rel="noopener noreferrer" class="primary-btn accent-btn center-btn">Open Classroom</a>
-        </div>
-    `;
+    const container = document.createElement("div");
+    container.className = "unsupported-container";
+
+    const icon = document.createElement("div");
+    icon.className = "unsupported-icon";
+    icon.textContent = "!";
+
+    const heading = document.createElement("h2");
+    heading.textContent = "Not Google Classroom";
+
+    const copy = document.createElement("p");
+    copy.textContent = "This extension only works on Google Classroom pages.";
+
+    const link = document.createElement("a");
+    link.href = "https://classroom.google.com";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.className = "primary-btn accent-btn center-btn";
+    link.textContent = "Open Classroom";
+
+    container.appendChild(icon);
+    container.appendChild(heading);
+    container.appendChild(copy);
+    container.appendChild(link);
+
+    document.querySelector(".main-content").replaceChildren(container);
 }
 
-function renderEmptyState(message) {
-    fileList.innerHTML = `
-        <div class="empty-state">
-            ${message}
-        </div>
-    `;
+function renderEmptyState(message, detail = null) {
+    const emptyState = document.createElement("div");
+    emptyState.className = "empty-state";
+    emptyState.appendChild(document.createTextNode(message));
+
+    if (detail) {
+        emptyState.appendChild(document.createElement("br"));
+        emptyState.appendChild(document.createTextNode(detail));
+    }
+
+    fileList.replaceChildren(emptyState);
     setControlsDisabled(true);
 }
 
 function renderFiles(nextFiles) {
     files = nextFiles;
     fileStatusElements.clear();
-    fileList.innerHTML = "";
+    fileList.replaceChildren();
     clearStatus();
 
     files.forEach((file) => {
@@ -420,17 +514,8 @@ function renderFiles(nextFiles) {
 }
 
 function updateThemeUI(isDark) {
-    if (isDark) {
-        darkModeButton.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg>
-        `;
-        darkModeButton.setAttribute("title", "Switch to Light Mode");
-    } else {
-        darkModeButton.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-        `;
-        darkModeButton.setAttribute("title", "Switch to Dark Mode");
-    }
+    darkModeButton.replaceChildren(createThemeIcon(isDark));
+    darkModeButton.setAttribute("title", isDark ? "Switch to Light Mode" : "Switch to Dark Mode");
 }
 
 function initializeTheme() {
@@ -474,7 +559,7 @@ function loadFilesFromActiveTab() {
             }
 
             if (response.files.length === 0) {
-                renderEmptyState("No supported Classroom attachment files found.<br>Open a class post, assignment, or refresh the page.");
+                renderEmptyState("No supported Classroom attachment files found.", "Open a class post, assignment, or refresh the page.");
                 return;
             }
 
@@ -522,6 +607,14 @@ chrome.downloads.onChanged.addListener((delta) => {
     }
 
     chrome.downloads.search({ id: delta.id }, (items) => {
+        if (chrome.runtime.lastError) {
+            updateFileStatus(file.id, "status unknown", "warning");
+            setStatus(`${file.name} finished, but ClassGrab could not verify the downloaded file type.`, "warning");
+            console.error("ClassGrab download verification failed:", chrome.runtime.lastError);
+            pendingDownloads.delete(delta.id);
+            return;
+        }
+
         const item = items && items[0];
         const downloadedName = item && item.filename ? item.filename.toLowerCase() : "";
         const mime = item && item.mime ? item.mime.toLowerCase() : "";
