@@ -8,6 +8,7 @@ on:
       - '.github/**'
       - 'README.md'
       - 'assets/**'
+      - 'store-assets/**'
 
 permissions:
   contents: write
