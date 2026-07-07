@@ -14,3 +14,14 @@ both stores unless a store-specific rejection requires another asset.
 
 Before upload, visually confirm raster screenshots do not expose real student,
 teacher, account, classroom URL, or private-comment information.
+
+## Current Screenshot Process
+
+The current store screenshot was exported from the redacted README preview at
+`assets/classgrab-preview.png`. It was cropped from the left edge to preserve
+the Classroom page context, the full ClassGrab popup, and visible attachment
+file names, then resized to `1280x800`.
+
+The visible Classroom URL, class name, assignment title, teacher name, account
+avatar, and private-comment target were redacted. Attachment file names were
+intentionally left visible.

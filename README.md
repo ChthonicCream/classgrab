@@ -136,7 +136,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\release.ps1
 
 The command verifies the version in `manifest.json`, the popup badge, and README release markers, runs JavaScript syntax checks plus `git diff --check`, rebuilds `ClassGrab.zip`, and rejects package contents that do not match the tracked store upload files.
 
-It also runs `tools/security-check.ps1`, which gates reviewed permissions, common secret and personal-data patterns, remote script/style loads, unsafe HTML injection APIs, and private files in the release package.
+It also runs `tools/security-check.ps1`, which gates reviewed permissions, common secret and personal-data patterns, PNG text metadata, remote script/style loads, unsafe HTML injection APIs, and private files in the release package.
 
 ## Acknowledgements
 
