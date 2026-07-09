@@ -319,7 +319,7 @@ function Assert-NoPackagedFootguns {
 function Assert-PackageHasNoPrivateFiles {
   param([Parameter(Mandatory = $true)][string]$ZipPath)
 
-  if (-not (Test-Path -LiteralPath $ZipPath)) {
+  if ([string]::IsNullOrEmpty($ZipPath) -or -not (Test-Path -LiteralPath $ZipPath -PathType Leaf)) {
     return
   }
 

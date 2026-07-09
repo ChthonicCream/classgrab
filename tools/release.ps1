@@ -2,7 +2,8 @@
 
 [CmdletBinding()]
 param(
-  [string]$OutputPath = "ClassGrab.zip"
+  [string]$OutputPath = "ClassGrab.zip",
+  [switch]$ValidateOnly
 )
 
 Set-StrictMode -Version Latest
@@ -244,6 +245,15 @@ try {
   Invoke-CheckedCommand -Command "node" -Arguments @("--check", "scripts/popup.js")
   Invoke-CheckedCommand -Command "node" -Arguments @("--check", "scripts/background.js")
   Invoke-CheckedCommand -Command "git" -Arguments @("diff", "--check", "HEAD", "--")
+
+  if ($ValidateOnly) {
+    & (Join-Path $PSScriptRoot "security-check.ps1") -PackagePath $null
+    if ($LASTEXITCODE -ne 0) {
+      throw "Security/privacy check failed."
+    }
+    Write-Host "Validation OK."
+    return
+  }
 
   $expectedEntries = Get-ExpectedPackageEntries
   $resolvedOutputPath = if ([IO.Path]::IsPathRooted($OutputPath)) {
