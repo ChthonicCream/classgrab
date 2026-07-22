@@ -6,6 +6,7 @@ const statusPanel = document.getElementById("statusPanel");
 const darkModeButton = document.getElementById("darkModeButton");
 const body = document.getElementById("body");
 const SVG_NS = "http://www.w3.org/2000/svg";
+const MAX_BATCH_WORKERS = 4;
 const fallbackMessages = {
     extensionName: "ClassGrab",
     availableFiles: "Available Files",
@@ -439,11 +440,16 @@ function restoreStoredStatuses() {
 
 function openManualDownload(file, url) {
     updateFileStatus(file.id, "manual", "warning");
-    chrome.tabs.create({ url: withAuthUser(url) }, () => {
-        if (chrome.runtime.lastError) {
-            updateFileStatus(file.id, "failed", "error");
-            setStatus(t("manualConfirmationOpenError", [file.name, chrome.runtime.lastError.message]), "error");
-        }
+    return new Promise((resolve, reject) => {
+        chrome.tabs.create({ url: withAuthUser(url) }, () => {
+            if (chrome.runtime.lastError) {
+                updateFileStatus(file.id, "failed", "error");
+                reject(new Error(t("manualConfirmationOpenError", [file.name, chrome.runtime.lastError.message])));
+                return;
+            }
+
+            resolve();
+        });
     });
 }
 
@@ -460,32 +466,44 @@ async function downloadBatch(targetFiles) {
     let manual = 0;
     let failed = 0;
     let notes = 0;
+    let nextFileIndex = 0;
+    let firstFailureMessage = null;
 
-    for (const file of targetFiles) {
-        updateFileStatus(file.id, "preparing", "info");
+    async function downloadNextFiles() {
+        while (nextFileIndex < targetFiles.length) {
+            const file = targetFiles[nextFileIndex];
+            nextFileIndex += 1;
+            updateFileStatus(file.id, "preparing", "info");
 
-        try {
-            const prepared = await prepareDownloadUrl(file);
+            try {
+                const prepared = await prepareDownloadUrl(file);
 
-            if (prepared.note) {
-                notes += 1;
+                if (prepared.note) {
+                    notes += 1;
+                }
+
+                if (prepared.manualUrl) {
+                    await openManualDownload(file, prepared.manualUrl);
+                    manual += 1;
+                    continue;
+                }
+
+                await startDownload(file, prepared.url);
+                started += 1;
+                updateFileStatus(file.id, "started", "success");
+            } catch (error) {
+                failed += 1;
+                if (!firstFailureMessage) {
+                    firstFailureMessage = error && error.message ? error.message : t("requestFailed");
+                }
+                updateFileStatus(file.id, "failed", "error");
+                console.error("ClassGrab download failed:", file.name, error);
             }
-
-            if (prepared.manualUrl) {
-                manual += 1;
-                openManualDownload(file, prepared.manualUrl);
-                continue;
-            }
-
-            await startDownload(file, prepared.url);
-            started += 1;
-            updateFileStatus(file.id, "started", "success");
-        } catch (error) {
-            failed += 1;
-            updateFileStatus(file.id, "failed", "error");
-            console.error("ClassGrab download failed:", file.name, error);
         }
     }
+
+    const workerCount = Math.min(MAX_BATCH_WORKERS, targetFiles.length);
+    await Promise.all(Array.from({ length: workerCount }, () => downloadNextFiles()));
 
     const summary = [];
     if (started) summary.push(t("summaryStarted", String(started)));
@@ -493,7 +511,9 @@ async function downloadBatch(targetFiles) {
     if (failed) summary.push(t("summaryFailed", String(failed)));
     if (notes) summary.push(t("summaryDriveHandling", String(notes)));
 
-    setStatus(summary.length ? summary.join(", ") : t("noDownloadsStarted"), failed ? "error" : manual ? "warning" : "success");
+    const summaryMessage = summary.length ? summary.join(", ") : t("noDownloadsStarted");
+    const statusMessage = firstFailureMessage ? `${summaryMessage}: ${firstFailureMessage}` : summaryMessage;
+    setStatus(statusMessage, failed ? "error" : manual ? "warning" : "success");
     setControlsDisabled(false);
     restoreStoredStatuses();
 }

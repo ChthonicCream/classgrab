@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+
+if command -v pwsh >/dev/null 2>&1; then
+  powershell_runner=pwsh
+elif command -v powershell.exe >/dev/null 2>&1; then
+  powershell_runner=powershell.exe
+else
+  echo "ClassGrab pre-push check requires PowerShell 5.1+ or pwsh." >&2
+  exit 1
+fi
+
+"$powershell_runner" -NoProfile -ExecutionPolicy Bypass -File "$repo_root/tools/release.ps1" -ValidateOnly

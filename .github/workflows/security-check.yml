@@ -1,0 +1,23 @@
+name: Security and Privacy Check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release and repository privacy
+        shell: pwsh
+        run: ./tools/release.ps1 -ValidateOnly

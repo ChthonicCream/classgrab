@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.2-6366f1?style=for-the-badge">
-  <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-available%20v1.1.2-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
-  <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-available%20v1.1.2-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.3-6366f1?style=for-the-badge">
+  <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-available%20v1.1.3-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
+  <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-available%20v1.1.3-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
 </p>
 
 ClassGrab is a small Chromium extension for students and teachers who want to save the files attached to a Google Classroom post without opening each attachment one by one.
@@ -24,16 +24,18 @@ It is intended for **Google Chrome** and **Microsoft Edge** only. Requests for F
 
 - Download all supported attachments from the current Classroom post.
 - Select only the files you want before starting downloads.
+- Prepares multiple attachments concurrently for faster bulk download startup.
 - Supports Google Drive file links and exports Google Docs, Sheets, and Slides to Office formats.
 - Handles Google Drive "can't scan this file" confirmation pages when Drive exposes a confirmation URL.
 - Shows visible per-file status and remembers recent outcomes after the popup closes.
+- Preserves every status record when several downloads start together.
 - Deduplicates repeated Classroom anchors for the same attachment.
 - Dark and light popup themes.
 - Localized extension metadata and popup text for English, Spanish, French, Simplified Chinese, and Vietnamese.
 
 ## Store Availability
 
-ClassGrab v1.1.2 is available for:
+ClassGrab v1.1.3 is available for:
 
 - Chrome Web Store
 - Microsoft Edge Add-ons
@@ -70,6 +72,13 @@ Packaged locales are English, Spanish, French, Simplified Chinese, and Vietnames
 | Unsupported links | Ignored for now |
 
 ## Versions
+
+### v1.1.3
+
+- Restored fast bulk startup with bounded concurrent Drive preparation.
+- Added a regression test that prevents bulk downloads from becoming sequential again.
+- Serialized local status updates so concurrent downloads cannot overwrite each other's tracking records.
+- Added pre-push and CI gates for non-private Git commit identities and credential-bearing remote URLs.
 
 ### v1.1.2
 
@@ -133,6 +142,14 @@ No. If the file owner or school administrator disables download permissions, Cla
 
 Bug reports and feature requests are welcome. For large changes, open an issue first so the behavior, browser scope, and testing plan are clear before implementation.
 
+After cloning, install the tracked pre-push privacy gate once:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\install-git-hooks.ps1
+```
+
+The hook runs release validation before every push. GitHub Actions runs the same security validation for every push and pull request, including documentation-only changes.
+
 ### Release Package Check
 
 Before preparing a store update, run:
@@ -141,9 +158,9 @@ Before preparing a store update, run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\release.ps1
 ```
 
-The command verifies the version in `manifest.json`, the popup badge, and README release markers, runs JavaScript syntax checks plus `git diff --check`, rebuilds `ClassGrab.zip`, and rejects package contents that do not match the tracked store upload files, including `_locales/`.
+The command verifies the version in `manifest.json`, the popup badge, and README release markers, runs JavaScript syntax checks, bulk-download, background-storage, and Git privacy regression tests, and `git diff --check`, rebuilds `ClassGrab.zip`, and rejects package contents that do not match the tracked store upload files, including `_locales/`.
 
-It also runs `tools/security-check.ps1`, which gates reviewed permissions, required locale files/messages, common secret and personal-data patterns, PNG text metadata, remote script/style loads, unsafe HTML injection APIs, and private files in the release package.
+It also runs `tools/security-check.ps1`, which gates reviewed permissions, required locale files/messages, common secret and personal-data patterns, Git commit identity and remote URL privacy, PNG text metadata, remote script/style loads, unsafe HTML injection APIs, and private files in the release package.
 
 ## Acknowledgements
 

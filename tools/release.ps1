@@ -244,6 +244,10 @@ try {
   Invoke-CheckedCommand -Command "node" -Arguments @("--check", "scripts/content.js")
   Invoke-CheckedCommand -Command "node" -Arguments @("--check", "scripts/popup.js")
   Invoke-CheckedCommand -Command "node" -Arguments @("--check", "scripts/background.js")
+  Invoke-CheckedCommand -Command "node" -Arguments @("tools/download-batch.test.js")
+  Invoke-CheckedCommand -Command "node" -Arguments @("tools/background-storage.test.js")
+  Write-Host "==> tools/security-check.test.ps1"
+  & (Join-Path $PSScriptRoot "security-check.test.ps1")
   Invoke-CheckedCommand -Command "git" -Arguments @("diff", "--check", "HEAD", "--")
 
   if ($ValidateOnly) {

@@ -2,18 +2,25 @@
 
 [CmdletBinding()]
 param(
-  [string]$PackagePath = "ClassGrab.zip"
+  [string]$PackagePath = "ClassGrab.zip",
+  [string]$RepositoryRoot = "",
+  [switch]$GitPrivacyOnly
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$RepoRoot = Split-Path -Parent $PSScriptRoot
+$RepoRoot = if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
+  [IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
+} else {
+  [IO.Path]::GetFullPath($RepositoryRoot)
+}
 $AllowedPermissions = @("activeTab", "downloads", "storage")
 $AllowedHostPermissions = @("https://drive.google.com/*", "https://drive.usercontent.google.com/*")
 $AllowedContentScriptMatches = @("https://classroom.google.com/*")
 $ExpectedLocales = @("en", "es", "fr", "zh_CN", "vi")
 $PackageRoots = @("icons", "scripts", "styles", "views", "_locales", "manifest.json")
+$PrivateGitEmailPattern = "^(?:[^@\s]+@users\.noreply\.github\.com|noreply@github\.com)$"
 $RequiredLocaleMessages = @(
   "extensionName",
   "extensionDescription",
@@ -121,6 +128,61 @@ function Get-PackagedTextFiles {
       $TextExtensions -contains $extension
     }
   )
+}
+
+function Assert-GitRepositoryPrivacy {
+  $logLines = @(& git -C $RepoRoot log "--format=%H`t%ae`t%ce" HEAD --branches --tags)
+  if ($LASTEXITCODE -ne 0) {
+    throw "git log failed while checking commit identity privacy."
+  }
+  if ($logLines.Count -eq 0) {
+    throw "No reachable commits were found for the Git identity privacy check."
+  }
+
+  $findings = New-Object System.Collections.Generic.List[string]
+  foreach ($line in $logLines) {
+    $parts = @($line -split "`t", 3)
+    if ($parts.Count -ne 3) {
+      throw "Unexpected git log output while checking commit identity privacy."
+    }
+
+    $commit = $parts[0].Substring(0, [Math]::Min(12, $parts[0].Length))
+    if ($parts[1] -notmatch $PrivateGitEmailPattern) {
+      $findings.Add("commit $commit has a non-noreply author identity")
+    }
+    if ($parts[2] -notmatch $PrivateGitEmailPattern) {
+      $findings.Add("commit $commit has a non-noreply committer identity")
+    }
+  }
+
+  $remoteNames = @(& git -C $RepoRoot remote)
+  if ($LASTEXITCODE -ne 0) {
+    throw "git remote failed while checking remote URL privacy."
+  }
+
+  foreach ($remoteName in $remoteNames) {
+    $fetchUrls = @(& git -C $RepoRoot remote get-url --all $remoteName)
+    if ($LASTEXITCODE -ne 0) {
+      throw "Could not inspect fetch URLs for Git remote '$remoteName'."
+    }
+    $pushUrls = @(& git -C $RepoRoot remote get-url --push --all $remoteName)
+    if ($LASTEXITCODE -ne 0) {
+      throw "Could not inspect push URLs for Git remote '$remoteName'."
+    }
+    $remoteUrls = @($fetchUrls + $pushUrls | Sort-Object -Unique)
+
+    foreach ($remoteUrl in $remoteUrls) {
+      $hasHttpCredentials = $remoteUrl -match "(?i)^https?://[^/@\s]+@"
+      $hasKnownToken = $remoteUrl -match "(?i)(?:ghp_|github_pat_|[?&](?:access_token|token)=)"
+      if ($hasHttpCredentials -or $hasKnownToken) {
+        $findings.Add("remote '$remoteName' contains credentials in its URL")
+      }
+    }
+  }
+
+  if ($findings.Count -gt 0) {
+    throw "Git repository privacy check failed:$([Environment]::NewLine)$(($findings | Sort-Object -Unique) -join [Environment]::NewLine)"
+  }
 }
 
 function Assert-ManifestSecurity {
@@ -348,6 +410,11 @@ function Assert-PackageHasNoPrivateFiles {
 
 Push-Location $RepoRoot
 try {
+  Assert-GitRepositoryPrivacy
+  if ($GitPrivacyOnly) {
+    Write-Host "Git repository privacy check OK."
+    return
+  }
   Assert-ManifestSecurity
   Assert-Locales
   Assert-NoTextLeaks

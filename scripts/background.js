@@ -2,6 +2,7 @@ const DOWNLOADS_KEY = "classgrabTrackedDownloads";
 const STATUSES_KEY = "classgrabDownloadStatuses";
 const STATUS_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_STATUSES = 100;
+let storageOperationQueue = Promise.resolve();
 
 function readStorage(keys) {
     return chrome.storage.local.get(keys);
@@ -9,6 +10,12 @@ function readStorage(keys) {
 
 function writeStorage(values) {
     return chrome.storage.local.set(values);
+}
+
+function queueStorageOperation(operation) {
+    const result = storageOperationQueue.then(operation);
+    storageOperationQueue = result.catch(() => {});
+    return result;
 }
 
 function isHtmlDownload(item) {
@@ -66,12 +73,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return false;
         }
 
-        readStorage([DOWNLOADS_KEY]).then((current) => {
+        queueStorageOperation(async () => {
+            const current = await readStorage([DOWNLOADS_KEY]);
             const downloads = current[DOWNLOADS_KEY] || {};
             downloads[String(request.downloadId)] = { id: request.file.id };
-            return writeStorage({ [DOWNLOADS_KEY]: downloads });
-        }).then(() => {
-            return updateStoredStatus(request.file, "started", "success", "Download started.");
+            await writeStorage({ [DOWNLOADS_KEY]: downloads });
+            await updateStoredStatus(request.file, "started", "success", "Download started.");
         }).then(() => {
             sendResponse({ ok: true });
         }).catch((error) => {
@@ -82,11 +89,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === "getDownloadStatuses") {
-        readStorage([STATUSES_KEY]).then((current) => {
+        queueStorageOperation(async () => {
+            const current = await readStorage([STATUSES_KEY]);
             const statuses = pruneStatuses(current[STATUSES_KEY] || {});
-            writeStorage({ [STATUSES_KEY]: statuses }).catch((error) => {
-                console.error("ClassGrab status pruning failed:", error);
-            });
+            await writeStorage({ [STATUSES_KEY]: statuses });
+            return statuses;
+        }).then((statuses) => {
             sendResponse({ statuses });
         }).catch((error) => {
             sendResponse({ statuses: {}, error: error.message });
@@ -99,40 +107,41 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 chrome.downloads.onChanged.addListener((delta) => {
-    readStorage([DOWNLOADS_KEY]).then((current) => {
+    queueStorageOperation(async () => {
+        const current = await readStorage([DOWNLOADS_KEY]);
         const downloads = current[DOWNLOADS_KEY] || {};
         const file = downloads[String(delta.id)];
 
         if (!file) {
-            return null;
+            return;
         }
 
         if (delta.error) {
-            return updateStoredStatus(file, "failed", "error", delta.error.current)
-                .then(() => removeTrackedDownload(delta.id));
+            await updateStoredStatus(file, "failed", "error", delta.error.current);
+            await removeTrackedDownload(delta.id);
+            return;
         }
 
         if (!delta.state || delta.state.current !== "complete") {
-            return null;
+            return;
         }
 
-        return chrome.downloads.search({ id: delta.id }).then((items) => {
-            const item = items && items[0];
-            const status = isHtmlDownload(item)
-                ? {
-                    label: "html warning",
-                    type: "warning",
-                    message: "Google Drive returned an HTML confirmation page instead of the file.",
-                }
-                : {
-                    label: "complete",
-                    type: "success",
-                    message: "Download completed.",
-                };
+        const items = await chrome.downloads.search({ id: delta.id });
+        const item = items && items[0];
+        const status = isHtmlDownload(item)
+            ? {
+                label: "html warning",
+                type: "warning",
+                message: "Google Drive returned an HTML confirmation page instead of the file.",
+            }
+            : {
+                label: "complete",
+                type: "success",
+                message: "Download completed.",
+            };
 
-            return updateStoredStatus(file, status.label, status.type, status.message)
-                .then(() => removeTrackedDownload(delta.id));
-        });
+        await updateStoredStatus(file, status.label, status.type, status.message);
+        await removeTrackedDownload(delta.id);
     }).catch((error) => {
         console.error("ClassGrab background download tracking failed:", error);
     });
