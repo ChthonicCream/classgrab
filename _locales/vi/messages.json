@@ -134,7 +134,7 @@
     "message": "Không tìm thấy tệp đính kèm Classroom được hỗ trợ."
   },
   "openClassPost": {
-    "message": "Mở bài đăng, bài tập của lớp hoặc làm mới trang."
+    "message": "Mở trang chi tiết đầy đủ của một bài đăng hoặc bài tập cụ thể trong lớp để xem các tệp của bài đó."
   },
   "fileFailed": {
     "message": "$FILE$ thất bại: $ERROR$",
@@ -189,5 +189,45 @@
   },
   "statusHtmlWarning": {
     "message": "cảnh báo HTML"
+  },
+  "postUnavailable": {
+    "message": "ClassGrab không thể xác định bài đăng này. Hãy mở trang chi tiết đầy đủ của bài đăng rồi thử lại."
+  },
+  "postChanged": {
+    "message": "Bài đăng hiện tại đã thay đổi. Hãy kiểm tra các tệp của bài đăng trước khi tải xuống."
+  },
+  "duplicateWarning": {
+    "message": "$COUNT$ tệp đã được tải xuống hoặc vẫn đang được tải trong hồ sơ trình duyệt này. Hãy bỏ qua các tệp đó hoặc chọn tải lại những tệp đã tải xong.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "skipDuplicates": {
+    "message": "Bỏ qua tệp trùng"
+  },
+  "downloadAgain": {
+    "message": "Tải lại"
+  },
+  "cancel": {
+    "message": "Hủy"
+  },
+  "summaryDuplicates": {
+    "message": "Đã bỏ qua $COUNT$ tệp trùng",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "downloadCancelled": {
+    "message": "Đã hủy tải xuống."
+  },
+  "historyUnavailable": {
+    "message": "ClassGrab không thể kiểm tra các lượt tải xuống gần đây. Hãy thử lại trước khi tải xuống."
+  },
+  "autoCloseHint": {
+    "message": "Giữ cửa sổ này mở trong khi chuẩn bị các tệp. Cửa sổ sẽ đóng sau khi quá trình tải xuống bắt đầu để bạn có thể xem danh sách tải xuống của trình duyệt."
   }
 }

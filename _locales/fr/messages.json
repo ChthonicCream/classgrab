@@ -134,7 +134,7 @@
     "message": "Aucune pièce jointe Classroom compatible n'a été trouvée."
   },
   "openClassPost": {
-    "message": "Ouvrez une publication, un devoir, ou actualisez la page."
+    "message": "Ouvrez les détails complets d'une publication ou d'un devoir précis du cours pour voir ses fichiers."
   },
   "fileFailed": {
     "message": "$FILE$ a échoué: $ERROR$",
@@ -189,5 +189,45 @@
   },
   "statusHtmlWarning": {
     "message": "avert. HTML"
+  },
+  "postUnavailable": {
+    "message": "ClassGrab n'a pas pu identifier cette publication. Ouvrez ses détails complets et réessayez."
+  },
+  "postChanged": {
+    "message": "La publication actuelle a changé. Vérifiez ses fichiers avant de les télécharger."
+  },
+  "duplicateWarning": {
+    "message": "$COUNT$ fichier(s) ont déjà été téléchargés ou sont en cours de téléchargement dans ce profil de navigateur. Ignorez-les ou choisissez de télécharger à nouveau les fichiers déjà terminés.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "skipDuplicates": {
+    "message": "Ignorer les doublons"
+  },
+  "downloadAgain": {
+    "message": "Télécharger à nouveau"
+  },
+  "cancel": {
+    "message": "Annuler"
+  },
+  "summaryDuplicates": {
+    "message": "$COUNT$ doublon(s) ignoré(s)",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "downloadCancelled": {
+    "message": "Téléchargement annulé."
+  },
+  "historyUnavailable": {
+    "message": "ClassGrab n'a pas pu vérifier les téléchargements récents. Réessayez avant de télécharger."
+  },
+  "autoCloseHint": {
+    "message": "Gardez cette fenêtre ouverte pendant la préparation des fichiers. Elle se ferme après le démarrage des téléchargements pour vous laisser voir la liste des téléchargements du navigateur."
   }
 }

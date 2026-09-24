@@ -27,7 +27,7 @@ function loadDownloadBatch(overrides = {}) {
         prepareDownloadUrl: async (file) => ({ url: file.link, note: null }),
         startDownload: async () => {},
         openManualDownload() {},
-        restoreStoredStatuses() {},
+        restoreStoredStatuses() { return {}; },
         ...overrides,
     };
 
@@ -69,6 +69,7 @@ async function testBulkPreparationUsesBoundedConcurrency() {
         },
         restoreStoredStatuses() {
             restored += 1;
+            return {};
         },
     });
 
@@ -170,11 +171,35 @@ async function testManualFallbackFailureIsReported() {
     );
 }
 
+async function testFailureDuringPreparationIsPreserved() {
+    let firstStarted = false;
+    const summaries = [];
+    const sandbox = loadDownloadBatch({
+        setStatus(message, type) { summaries.push({ message, type }); },
+        prepareDownloadUrl: async (file) => {
+            if (file.id === "1") await new Promise((resolve) => setTimeout(resolve, 20));
+            return { url: file.link };
+        },
+        startDownload: async (file) => {
+            if (file.id === "0") firstStarted = true;
+            return { status: { label: "started", type: "success" } };
+        },
+        restoreStoredStatuses: async () => {
+            assert.ok(firstStarted);
+            return { "0": { label: "failed", type: "error", message: "NETWORK_FAILED" } };
+        },
+    });
+    const result = await sandbox.downloadBatch(makeFiles(2));
+    assert.equal(result.failed, 1, "a failure during preparation must prevent automatic close");
+    assert.equal(summaries.at(-1).type, "error", "the final summary must preserve the failure");
+}
+
 (async () => {
     await testBulkPreparationUsesBoundedConcurrency();
     await testOneFailureDoesNotStopTheBatch();
     await testManualFallbackFinishesBeforeTheBatch();
     await testManualFallbackFailureIsReported();
+    await testFailureDuringPreparationIsPreserved();
     console.log("Download batch concurrency tests passed.");
 })().catch((error) => {
     console.error(error);

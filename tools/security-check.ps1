@@ -66,7 +66,10 @@ $RequiredLocaleMessages = @(
   "statusManual",
   "statusTrackingWarning",
   "statusUnknown",
-  "statusHtmlWarning"
+  "statusHtmlWarning",
+  "postUnavailable", "postChanged", "duplicateWarning", "skipDuplicates",
+  "downloadAgain", "cancel", "summaryDuplicates", "downloadCancelled",
+  "historyUnavailable", "autoCloseHint"
 )
 $TextExtensions = @(".css", ".html", ".js", ".json", ".md", ".ps1", ".svg", ".yml", ".yaml")
 

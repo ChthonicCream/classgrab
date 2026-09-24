@@ -81,9 +81,7 @@ function Assert-VersionSync {
   $readme = Get-Content -LiteralPath $readmePath -Raw
   $readmeChecks = @(
     @{ Label = "README version badge"; Pattern = "version-($VersionPattern)-" },
-    @{ Label = "README Chrome Web Store badge"; Pattern = "Chrome%20Web%20Store-available%20v($VersionPattern)-" },
-    @{ Label = "README Edge Add-ons badge"; Pattern = "Edge%20Add--ons-available%20v($VersionPattern)-" },
-    @{ Label = "README Store Availability version"; Pattern = "ClassGrab v($VersionPattern) is available for:" }
+    @{ Label = "README package version"; Pattern = "Current package: v($VersionPattern)\." }
   )
 
   foreach ($check in $readmeChecks) {
@@ -246,6 +244,8 @@ try {
   Invoke-CheckedCommand -Command "node" -Arguments @("--check", "scripts/background.js")
   Invoke-CheckedCommand -Command "node" -Arguments @("tools/download-batch.test.js")
   Invoke-CheckedCommand -Command "node" -Arguments @("tools/background-storage.test.js")
+  Invoke-CheckedCommand -Command "node" -Arguments @("--test", "tools/content-scope.test.js")
+  Invoke-CheckedCommand -Command "node" -Arguments @("--test", "tools/popup-flow.test.js")
   Write-Host "==> tools/security-check.test.ps1"
   & (Join-Path $PSScriptRoot "security-check.test.ps1")
   Invoke-CheckedCommand -Command "git" -Arguments @("diff", "--check", "HEAD", "--")

@@ -134,7 +134,7 @@
     "message": "未找到受支持的 Classroom 附件文件。"
   },
   "openClassPost": {
-    "message": "打开班级帖子、作业，或刷新页面。"
+    "message": "请打开某个班级帖子或作业的完整详情，查看其文件。"
   },
   "fileFailed": {
     "message": "$FILE$ 失败：$ERROR$",
@@ -189,5 +189,45 @@
   },
   "statusHtmlWarning": {
     "message": "HTML 警告"
+  },
+  "postUnavailable": {
+    "message": "ClassGrab 无法识别此帖子。请打开其完整详情后重试。"
+  },
+  "postChanged": {
+    "message": "当前帖子已更改。下载前请确认其文件列表。"
+  },
+  "duplicateWarning": {
+    "message": "此浏览器配置文件中有 $COUNT$ 个文件已下载或仍在下载。请跳过这些文件，或明确选择重新下载已完成的文件。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "skipDuplicates": {
+    "message": "跳过重复文件"
+  },
+  "downloadAgain": {
+    "message": "重新下载"
+  },
+  "cancel": {
+    "message": "取消"
+  },
+  "summaryDuplicates": {
+    "message": "已跳过 $COUNT$ 个重复文件",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "downloadCancelled": {
+    "message": "已取消下载。"
+  },
+  "historyUnavailable": {
+    "message": "ClassGrab 无法检查最近的下载记录。请重试后再下载。"
+  },
+  "autoCloseHint": {
+    "message": "准备文件时请保持此弹出窗口打开。下载开始后，窗口会关闭，以便您查看浏览器的下载列表。"
   }
 }

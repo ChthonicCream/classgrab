@@ -58,10 +58,11 @@ body {
   color: var(--text-primary);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   width: 380px;
   box-sizing: border-box;
-  overflow: hidden;
+  max-height: 600px;
+  overflow-y: auto;
   transition: background-color 0.3s ease;
 }
 
@@ -642,3 +643,34 @@ body.dm .ext-py {
   text-decoration: none;
   text-align: center;
 }
+
+.duplicate-panel {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--warning-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-item);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.duplicate-panel[hidden] { display: none; }
+.duplicate-panel p { margin: 0 0 8px; }
+.duplicate-panel ul {
+  max-height: 80px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  padding-left: 20px;
+}
+.duplicate-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.duplicate-actions button {
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  background: var(--bg-card);
+  cursor: pointer;
+}
+.duplicate-actions button:first-child { border-color: var(--accent-color); }
+.duplicate-actions button:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+.download-hint { color: var(--text-secondary); font-size: 0.75rem; line-height: 1.5; margin: 12px 0 0; }

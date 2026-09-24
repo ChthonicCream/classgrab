@@ -134,7 +134,7 @@
     "message": "No supported Classroom attachment files found."
   },
   "openClassPost": {
-    "message": "Open a class post, assignment, or refresh the page."
+    "message": "Open the full details of a specific class post or assignment to see its files."
   },
   "fileFailed": {
     "message": "$FILE$ failed: $ERROR$",
@@ -189,5 +189,45 @@
   },
   "statusHtmlWarning": {
     "message": "html warning"
+  },
+  "postUnavailable": {
+    "message": "ClassGrab could not identify this post. Open its full details and try again."
+  },
+  "postChanged": {
+    "message": "The current post changed. Review its files before downloading."
+  },
+  "duplicateWarning": {
+    "message": "$COUNT$ file(s) were already downloaded or are still downloading in this browser profile. Skip them or explicitly download completed files again.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "skipDuplicates": {
+    "message": "Skip duplicates"
+  },
+  "downloadAgain": {
+    "message": "Download again"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "summaryDuplicates": {
+    "message": "$COUNT$ duplicate(s) skipped",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "downloadCancelled": {
+    "message": "Download cancelled."
+  },
+  "historyUnavailable": {
+    "message": "ClassGrab could not check recent downloads. Try again before downloading."
+  },
+  "autoCloseHint": {
+    "message": "Keep this popup open while files are prepared. It closes after downloads start so you can see the browser download list."
   }
 }

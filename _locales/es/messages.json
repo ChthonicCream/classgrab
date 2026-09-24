@@ -134,7 +134,7 @@
     "message": "No se encontraron archivos adjuntos compatibles de Classroom."
   },
   "openClassPost": {
-    "message": "Abre una publicación o tarea de la clase, o actualiza la página."
+    "message": "Abre los detalles completos de una publicación o tarea concreta de la clase para ver sus archivos."
   },
   "fileFailed": {
     "message": "$FILE$ falló: $ERROR$",
@@ -189,5 +189,45 @@
   },
   "statusHtmlWarning": {
     "message": "aviso HTML"
+  },
+  "postUnavailable": {
+    "message": "ClassGrab no pudo identificar esta publicación. Abre sus detalles completos e inténtalo de nuevo."
+  },
+  "postChanged": {
+    "message": "La publicación actual ha cambiado. Revisa sus archivos antes de descargarlos."
+  },
+  "duplicateWarning": {
+    "message": "Ya se han descargado o se están descargando $COUNT$ archivo(s) en este perfil del navegador. Omítelos o elige volver a descargar los archivos ya completados.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "skipDuplicates": {
+    "message": "Omitir duplicados"
+  },
+  "downloadAgain": {
+    "message": "Volver a descargar"
+  },
+  "cancel": {
+    "message": "Cancelar"
+  },
+  "summaryDuplicates": {
+    "message": "$COUNT$ duplicado(s) omitido(s)",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "downloadCancelled": {
+    "message": "Descarga cancelada."
+  },
+  "historyUnavailable": {
+    "message": "ClassGrab no pudo comprobar las descargas recientes. Inténtalo de nuevo antes de descargar."
+  },
+  "autoCloseHint": {
+    "message": "Mantén esta ventana abierta mientras se preparan los archivos. Se cerrará cuando comiencen las descargas para que puedas ver la lista de descargas del navegador."
   }
 }
