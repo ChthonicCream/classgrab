@@ -1,7 +1,7 @@
-# Submit the ClassGrab 1.1.4 update
+# Submit the ClassGrab 1.1.5 update
 
 These instructions update the existing Chrome Web Store and Microsoft Edge
-Add-ons listings. Version 1.1.4 is a prepared release; pushing code to GitHub
+Add-ons listings. Version 1.1.5 is a prepared release; pushing code to GitHub
 does not publish either store update. Store procedures were checked against
 official documentation on 24 September 2026.
 
@@ -18,14 +18,14 @@ official documentation on 24 September 2026.
    `D:\USB\Nuke Test Field\classgrab\ClassGrab.zip`. Use this same complete
    package for both stores. Do not upload GitHub's source-code ZIP.
 3. Inspect the archive: `manifest.json` must be at its root, with version
-   `1.1.4`; the other roots are `icons/`, `scripts/`, `styles/`, `views/`, and
+   `1.1.5`; the other roots are `icons/`, `scripts/`, `styles/`, `views/`, and
    `_locales/`. There must be no outer `classgrab/` directory. The release
    command checks the packaged files against the tracked upload set.
 4. In Chrome, open `chrome://extensions/`; in Edge, open `edge://extensions/`.
    Enable **Developer mode**, select **Load unpacked**, and choose this
    repository folder. For an already loaded development copy, click its
    reload button. Temporarily disable the store copy while testing to avoid
-   opening the wrong copy. Confirm the development copy shows `1.1.4`.
+   opening the wrong copy. Confirm the development copy shows `1.1.5`.
 5. Refresh the Classroom tab after loading or reloading the extension, then
    run the following checks in both browsers with a test classroom:
 
@@ -54,7 +54,7 @@ if Classroom has not finished switching posts.
 1. Sign in to the owning account at the [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole/).
 2. Open the **existing ClassGrab item**. Choose **Package** > **Upload New
    Package**, then select `ClassGrab.zip`. Confirm the parsed version is
-   `1.1.4`.
+   `1.1.5`.
 3. Review **Store listing**, **Privacy practices**, and **Distribution**.
    Preserve the existing audience and countries unless you intend a change.
 4. Add the release notes below to the listing description if desired. Save
@@ -79,7 +79,7 @@ process instead of uploading an unsigned ZIP. Google documents this under
    If you land on Home, open the **Edge** workspace.
 2. Open the **existing ClassGrab extension**. In **Packages**, upload the new
    `ClassGrab.zip` using the package upload/replacement control. Resolve any
-   validation messages and confirm version `1.1.4`.
+   validation messages and confirm version `1.1.5`.
 3. Review **Availability**, **Properties**, **Privacy**, and **Store listings**;
    save changes. Keep the current markets and visibility unless changing
    distribution deliberately.
@@ -119,7 +119,8 @@ from the tested build. Existing accurate listing images can remain.
 
 ## Suggested release notes
 
-> ClassGrab 1.1.4 fixes attachment selection so downloads stay limited to the
+> ClassGrab 1.1.5 fixes missing attachment detection on assignment details
+> pages without card metadata. Downloads stay limited to the
 > current Classroom post. Navigating between posts no longer carries forward
 > the previous post's attachment list. Duplicate-download warnings help you
 > avoid downloading the same attachment again. Once all downloads in a batch
@@ -158,7 +159,7 @@ skipped duplicates, and tracking warnings keep it open so the result can be
 read. ClassGrab leaves the browser's own download UI enabled.
 
 After each store reports publication, check its public listing and test the
-store-installed copy at version `1.1.4`. Re-enable the store copy and disable
+store-installed copy at version `1.1.5`. Re-enable the store copy and disable
 the unpacked copy when finished. Refresh open Classroom tabs after the
 update. Update repository store-availability claims only after the relevant
 store confirms the new version is live.

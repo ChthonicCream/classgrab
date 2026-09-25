@@ -193,13 +193,13 @@ test("feeds, edit, submissions, and unsupported routes cannot trigger a bulk sca
 const detailCard = (id) => new Element("div", { "data-drive-id": id }, [attachment(id)]);
 const detail = (children, attrs = {}) => new Element("main", attrs, [new Element("h1"), ...children]);
 
-test("dedicated details without a stream marker include only visible attachment cards", () => {
+test("dedicated details include supported links only inside the visible post view", () => {
     const view = fixture([
         new Element("div", { hidden: "" }, [post("201", [attachment("stream-file")])]),
         detail([detailCard("old-file")], { hidden: "" }),
         detail([detailCard("current-file"), attachment("instruction-link")]),
     ]);
-    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["current-file"]);
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["current-file", "instruction-link"]);
 });
 
 test("unkeyed details do not adopt old content on route changes and replace the list after rendering", () => {
@@ -215,10 +215,10 @@ test("unkeyed details do not adopt old content on route changes and replace the 
     assert.deepEqual(view.scan().files.map((file) => file.fileId), ["next-file"]);
 });
 
-test("ambiguous details, stream-containing main, and unscoped links fail closed", () => {
+test("ambiguous details, stream-containing main, and links outside a detail root fail closed", () => {
     assert.equal(fixture([detail([detailCard("one")]), detail([detailCard("two")])]).scan().scope, "unavailable");
     assert.equal(fixture([detail([post("201", [attachment("stream-file")]), detailCard("other")])]).scan().scope, "unavailable");
-    assert.deepEqual(fixture([detail([attachment("unscoped")])]).scan().files, []);
+    assert.deepEqual(fixture([detail([]), attachment("outside")]).scan().files, []);
 });
 
 test("in-place heading updates allow a new post once its attachment cards render", () => {
@@ -239,4 +239,50 @@ test("first popup after navigation rejects old details even if previous popup wa
     view.navigate(postUrl("203"));
     assert.equal(view.scan().scope, "unavailable");
     assert.deepEqual(view.scan().files, []);
+});
+
+test("seven visible assignment links without optional card metadata are detected", () => {
+    // User diagnostic: 7 visible Drive/Docs links, all 7 inside main, 0 matching
+    // [data-drive-id] or [data-id][data-item-id]. Use synthetic IDs and names.
+    const links = Array.from({ length: 7 }, (_, index) => attachment(`sample-${index}`));
+    const view = fixture([
+        detail(links),
+        detail([attachment("cached-file")], { hidden: "" }),
+        post("201", [attachment("stream-file")]),
+    ], postUrl("202").replace("/u/0/", "/u/2/"));
+    assert.equal(view.scan().scope, "post");
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), links.map((_, index) => `sample-${index}`));
+});
+
+test("unmarked links from a previous post cannot follow an in-place heading update", () => {
+    const main = detail([attachment("previous-file")]);
+    main.children[0].textContent = "First assignment";
+    const view = fixture([main]);
+    assert.equal(view.scan().files.length, 1);
+    view.navigate(postUrl("203"));
+    main.children[0].textContent = "Next assignment";
+    assert.equal(view.scan().scope, "unavailable");
+    const next = attachment("next-file");
+    next.parentElement = main;
+    main.children[1] = next;
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["next-file"]);
+});
+
+test("unmarked hidden links and duplicate anchors stay excluded or deduplicated", () => {
+    const view = fixture([detail([
+        attachment("current-file"), attachment("current-file"),
+        new Element("div", { hidden: "" }, [attachment("hidden-file")]),
+        attachment("hidden-anchor", { "aria-hidden": "true" }),
+    ])]);
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["current-file"]);
+});
+
+test("a reused unmarked anchor is reassigned when its actual href changes", () => {
+    const link = attachment("previous-file");
+    const main = detail([link]);
+    const view = fixture([main]);
+    view.navigate(postUrl("203"));
+    main.children[0].textContent = "Next assignment";
+    link.attrs.href = "https://drive.google.com/file/d/next/view";
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["next"]);
 });

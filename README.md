@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.4-6366f1?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.5-6366f1?style=for-the-badge">
   <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-listed-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
   <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-listed-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
 </p>
@@ -43,7 +43,7 @@ ClassGrab is distributed through:
 - Chrome Web Store
 - Microsoft Edge Add-ons
 
-Current package: v1.1.4. This version is prepared for store submission; GitHub updates do not automatically update either store. Follow the [store submission guide](docs/store-submission.md) to upload the package and complete review.
+Current package: v1.1.5. This version is prepared for store submission; GitHub updates do not automatically update either store. Follow the [store submission guide](docs/store-submission.md) to upload the package and complete review.
 
 Packaged locales are English, Spanish, French, Simplified Chinese, and Vietnamese. ClassGrab v1.0.0 was the first store release. Other browser stores are not part of the current release scope. Open a feature request if you want another browser supported.
 
@@ -79,6 +79,12 @@ Packaged locales are English, Spanish, French, Simplified Chinese, and Vietnames
 | Unsupported links | Ignored for now |
 
 ## Versions
+
+### v1.1.5
+
+- Fixed the v1.1.4 regression that showed no files on assignment details whose attachment cards omit optional metadata attributes.
+- Detects supported file links within the verified current-post view and tracks those links across navigation, preserving hidden/previous-post exclusions and duplicate warnings.
+- Added a regression matching the reported seven-link layout plus navigation and visibility checks for unmarked attachments.
 
 ### v1.1.4
 

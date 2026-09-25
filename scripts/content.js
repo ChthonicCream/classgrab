@@ -307,7 +307,6 @@ function belongsToCurrentPost(element, postIds, courseIds) {
 // Details views can omit data-stream-item-id. Remember previously scanned
 // unkeyed DOM nodes so a route change cannot relabel that same old content.
 const detailOwners = new WeakMap();
-const DETAIL_ATTACHMENT_SELECTOR = "[data-drive-id], [data-id][data-item-id]";
 
 function getCurrentDetailRoot(route, postIds, courseIds) {
     if (route.kind !== "a" && route.kind !== "m") return null;
@@ -323,17 +322,24 @@ function getCurrentDetailRoot(route, postIds, courseIds) {
     const root = roots[0];
     const identity = `${route.courseId}/${route.kind}/${route.postId}`;
     const headings = Array.from(root.querySelectorAll("h1")).filter(isVisiblePostElement);
-    const cards = Array.from(root.querySelectorAll(DETAIL_ATTACHMENT_SELECTOR)).filter(isVisiblePostElement);
-    const signatures = new Map([...headings, ...cards].map((node) => [node,
-        `${node.textContent}|${Array.from(node.querySelectorAll("a[href]")).map((anchor) => anchor.href).join("|")}`,
+    // Classroom does not consistently put data-drive-id/data-item-id on its
+    // detail cards. The verified post boundary scopes the scan; supported URLs
+    // identify its files. Track the actual links so unmarked cards also retain
+    // their ownership while Classroom switches posts.
+    const links = Array.from(root.querySelectorAll("a[href]"))
+        .filter((anchor) => parseGoogleAttachmentUrl(anchor.href))
+        .filter((anchor) => belongsToCurrentPost(anchor, postIds, courseIds)
+            && isVisiblePostElement(anchor) && anchor.getClientRects().length > 0);
+    const signatures = new Map([...headings, ...links].map((node) => [node,
+        `${node.textContent}|${node.getAttribute("href") || ""}`,
     ]));
     const isUnchangedOldNode = (node) => {
         const owner = detailOwners.get(node);
         return owner && owner.identity !== identity && owner.signature === signatures.get(node);
     };
-    // Google may update a heading/card in place. Changed content can acquire a
-    // new owner; unchanged cards from the old post must wait for rendering.
-    if (cards.some(isUnchangedOldNode) || [...signatures.keys()].every(isUnchangedOldNode)) return null;
+    // Google may update a heading/link in place. Changed content can acquire a
+    // new owner; unchanged links from the old post must wait for rendering.
+    if (links.some(isUnchangedOldNode) || [...signatures.keys()].every(isUnchangedOldNode)) return null;
     signatures.forEach((signature, node) => detailOwners.set(node, { identity, signature }));
     return root;
 }
@@ -367,9 +373,6 @@ function collectCurrentPostAttachments() {
     const filesById = new Map();
     for (const root of roots) {
         for (const anchor of root.querySelectorAll("a[href]")) {
-            // On unkeyed detail views use actual attachment cards, never links
-            // in comments, navigation, instructions, or the retained stream.
-            if (root === detailRoot && !anchor.closest(DETAIL_ATTACHMENT_SELECTOR)) continue;
             if (!belongsToCurrentPost(anchor, postIds, courseIds) || !isVisiblePostElement(anchor) || anchor.getClientRects().length === 0) {
                 continue;
             }
