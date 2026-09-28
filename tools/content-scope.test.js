@@ -193,6 +193,47 @@ test("feeds, edit, submissions, and unsupported routes cannot trigger a bulk sca
 const detailCard = (id) => new Element("div", { "data-drive-id": id }, [attachment(id)]);
 const detail = (children, attrs = {}) => new Element("main", attrs, [new Element("h1"), ...children]);
 
+test("current-post markers on detail controls do not hide five sibling attachments", () => {
+    const links = Array.from({ length: 5 }, (_, index) => attachment(`detail-file-${index}`));
+    // Live diagnostic: one DIV main, one h1, five eligible links, and two
+    // visible current-post DIV markers containing zero links each.
+    const view = fixture([new Element("div", { role: "main" }, [
+        new Element("h1"),
+        new Element("div", { "data-stream-item-id": "202" }),
+        new Element("div", { "data-stream-item-id": "202" }),
+        ...links,
+    ]), post("201", [attachment("outside-stream-file")])]);
+    assert.equal(view.scan().scope, "post");
+    assert.deepEqual(view.scan().files.map((file) => file.fileId),
+        links.map((_, index) => `detail-file-${index}`));
+});
+
+test("a partial keyed container cannot truncate the dedicated detail file list", () => {
+    const view = fixture([detail([
+        post("202", [attachment("inside-marker")]),
+        attachment("sibling-file"), attachment("inside-marker"),
+    ]), post("202", [attachment("outside-detail")])]);
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["inside-marker", "sibling-file"]);
+});
+
+test("stale detail content cannot bypass ownership through a reused keyed container", () => {
+    const container = post("202", [attachment("old-file")]);
+    const main = detail([container]);
+    const view = fixture([main]);
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["old-file"]);
+    view.navigate(postUrl("203"));
+    container.attrs["data-stream-item-id"] = "203";
+    main.children[0].textContent = "Next assignment";
+    assert.equal(view.scan().scope, "unavailable");
+    assert.deepEqual(view.scan().files, []);
+    const next = attachment("next-file");
+    next.parentElement = container;
+    container.children = [next];
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["next-file"]);
+    view.navigate(`${origin}/u/0/c/${encodeId("101")}`);
+    assert.deepEqual(view.scan().files, []);
+});
+
 test("dedicated details include supported links only inside the visible post view", () => {
     const view = fixture([
         new Element("div", { hidden: "" }, [post("201", [attachment("stream-file")])]),

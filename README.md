@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.5-6366f1?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.6-6366f1?style=for-the-badge">
   <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-listed-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
   <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-listed-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
 </p>
@@ -43,7 +43,7 @@ ClassGrab is distributed through:
 - Chrome Web Store
 - Microsoft Edge Add-ons
 
-Current package: v1.1.5. This version is prepared for store submission; GitHub updates do not automatically update either store. Follow the [store submission guide](docs/store-submission.md) to upload the package and complete review.
+Current package: v1.1.6. Complete the live browser checks in the [store submission guide](docs/store-submission.md) before uploading. GitHub updates do not automatically update either store.
 
 Packaged locales are English, Spanish, French, Simplified Chinese, and Vietnamese. ClassGrab v1.0.0 was the first store release. Other browser stores are not part of the current release scope. Open a feature request if you want another browser supported.
 
@@ -57,6 +57,10 @@ Packaged locales are English, Spanish, French, Simplified Chinese, and Vietnames
 4. Click Load unpacked.
 5. Select the root `classgrab` folder.
 6. Refresh any open Google Classroom tabs before using the extension.
+
+When updating an unpacked copy, click its **Reload** button on the extensions
+page, then refresh Classroom too. Confirm the version in the ClassGrab popup;
+turn off other ClassGrab copies while testing so the old scanner is not used.
 
 ## Usage
 
@@ -79,6 +83,12 @@ Packaged locales are English, Spanish, French, Simplified Chinese, and Vietnames
 | Unsupported links | Ignored for now |
 
 ## Versions
+
+### v1.1.6
+
+- Fixed empty attachment lists when Classroom puts the current post ID on controls beside the file cards. The scanner now prefers the complete, verified detail view over those partial containers.
+- Preserved current-post boundaries and stale-content checks, including when Classroom reuses a keyed container during navigation.
+- Added regressions for the reported five-link layout, partial attachment containers, and navigation with reused post markers.
 
 ### v1.1.5
 

@@ -315,11 +315,13 @@ function getCurrentDetailRoot(route, postIds, courseIds) {
         .filter((node) => belongsToCurrentPost(node, postIds, courseIds))
         .filter((node) => Array.from(node.querySelectorAll("h1")).filter(isVisiblePostElement).length === 1)
         .filter((node) => !Array.from(node.querySelectorAll("[data-stream-item-id]"))
-            .some((post) => isVisiblePostElement(post)));
+            .some((post) => isVisiblePostElement(post) && !belongsToCurrentPost(post, postIds, courseIds)));
     // Prefer the smallest detail surface when a main contains a detail shell.
     const roots = candidates.filter((node) => !candidates.some((other) => node !== other && node.contains(other)));
-    if (roots.length !== 1) return null;
-    const root = roots[0];
+    return roots.length === 1 ? roots[0] : null;
+}
+
+function rememberCurrentDetailContent(root, route, postIds, courseIds) {
     const identity = `${route.courseId}/${route.kind}/${route.postId}`;
     const headings = Array.from(root.querySelectorAll("h1")).filter(isVisiblePostElement);
     // Classroom does not consistently put data-drive-id/data-item-id on its
@@ -339,9 +341,9 @@ function getCurrentDetailRoot(route, postIds, courseIds) {
     };
     // Google may update a heading/link in place. Changed content can acquire a
     // new owner; unchanged links from the old post must wait for rendering.
-    if (links.some(isUnchangedOldNode) || [...signatures.keys()].every(isUnchangedOldNode)) return null;
+    if (links.some(isUnchangedOldNode) || [...signatures.keys()].every(isUnchangedOldNode)) return false;
     signatures.forEach((signature, node) => detailOwners.set(node, { identity, signature }));
-    return root;
+    return true;
 }
 
 function collectCurrentPostAttachments() {
@@ -355,19 +357,24 @@ function collectCurrentPostAttachments() {
 
     const postIds = classroomIdVariants(route.postId);
     const courseIds = classroomIdVariants(route.courseId);
-    const roots = Array.from(document.querySelectorAll("[data-stream-item-id]"))
+    let roots = Array.from(document.querySelectorAll("[data-stream-item-id]"))
         .filter((node) => node.tagName !== "BODY" && node.tagName !== "HTML")
         .filter((node) => postIds.has(node.getAttribute("data-stream-item-id")))
         .filter((node) => belongsToCurrentPost(node, postIds, courseIds) && isVisiblePostElement(node));
 
-    let detailRoot = null;
-    if (roots.length === 0) {
-        detailRoot = getCurrentDetailRoot(route, postIds, courseIds);
-        if (!detailRoot) {
+    // Details can put the current post ID on menu/toolbar elements beside the
+    // attachments. Prefer the verified detail surface over those partial roots.
+    const detailRoot = getCurrentDetailRoot(route, postIds, courseIds);
+    if (detailRoot) {
+        if (!rememberCurrentDetailContent(detailRoot, route, postIds, courseIds)) {
             response.scope = "unavailable";
             return response;
         }
-        roots.push(detailRoot);
+        roots = [detailRoot];
+    }
+    if (roots.length === 0) {
+        response.scope = "unavailable";
+        return response;
     }
 
     const filesById = new Map();
@@ -397,7 +404,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 function rememberRenderedDetails() {
     const route = getCurrentPostRoute(location.href);
-    if (route) getCurrentDetailRoot(route, classroomIdVariants(route.postId), classroomIdVariants(route.courseId));
+    if (!route) return;
+    const postIds = classroomIdVariants(route.postId);
+    const courseIds = classroomIdVariants(route.courseId);
+    const root = getCurrentDetailRoot(route, postIds, courseIds);
+    if (root) rememberCurrentDetailContent(root, route, postIds, courseIds);
 }
 
 // Remember ownership while Classroom renders, including visits where the
