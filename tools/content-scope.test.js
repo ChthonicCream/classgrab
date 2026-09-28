@@ -192,6 +192,12 @@ test("feeds, edit, submissions, and unsupported routes cannot trigger a bulk sca
 
 const detailCard = (id) => new Element("div", { "data-drive-id": id }, [attachment(id)]);
 const detail = (children, attrs = {}) => new Element("main", attrs, [new Element("h1"), ...children]);
+const announcement = (children, id = "202", attrs = {}) => new Element("div", { class: "EE538", ...attrs }, [
+    new Element("div", { "data-stream-item-id": id }, [
+        new Element("div", { "data-stream-item-id": id }),
+    ]),
+    ...children,
+]);
 
 test("current-post markers on detail controls do not hide five sibling attachments", () => {
     const links = Array.from({ length: 5 }, (_, index) => attachment(`detail-file-${index}`));
@@ -214,6 +220,58 @@ test("a partial keyed container cannot truncate the dedicated detail file list",
         attachment("sibling-file"), attachment("inside-marker"),
     ]), post("202", [attachment("outside-detail")])]);
     assert.deepEqual(view.scan().files.map((file) => file.fileId), ["inside-marker", "sibling-file"]);
+});
+
+test("announcement detail links are not limited to an empty current-post control", () => {
+    const view = fixture([detail([
+        post("202", []), attachment("announcement-file"),
+    ])], postUrl("202", "p"));
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["announcement-file"]);
+});
+
+test("headerless announcement details use the verified container around controls and files", () => {
+    // Live layout: no main/h1, two nested empty post controls and one file
+    // share a DIV.EE538 ancestor with no foreign post markers.
+    const view = fixture([
+        announcement([attachment("announcement-file")]),
+        announcement([attachment("cached-file")], "201", { hidden: "" }),
+        attachment("outside-file"),
+    ], postUrl("202", "p"));
+    assert.equal(view.scan().scope, "post");
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["announcement-file"]);
+});
+
+test("announcement boundaries reject feeds, foreign markers, unkeyed shells and ambiguous details", () => {
+    assert.equal(fixture([announcement([attachment("stream-file")])],
+        `${origin}/c/${encodeId("101")}`).scan().scope, "not-post");
+    for (const children of [
+        [announcement([attachment("current"), post("203", [attachment("foreign")])])],
+        [new Element("div", { class: "EE538" }, [new Element("h1"), attachment("unkeyed")])],
+        [announcement([attachment("one")]), announcement([attachment("two")])],
+        [announcement([attachment("unknown-shell")], "202", { class: "unknown" })],
+    ]) {
+        assert.deepEqual(fixture(children, postUrl("202", "p")).scan().files, []);
+    }
+});
+
+test("empty headerless announcements stay empty without adopting outside files", () => {
+    const view = fixture([announcement([]), attachment("outside-file")], postUrl("202", "p"));
+    assert.equal(view.scan().scope, "post");
+    assert.deepEqual(view.scan().files, []);
+});
+
+test("headerless announcement navigation rejects retained files until new files render", () => {
+    const shell = announcement([attachment("old-file")]);
+    const view = fixture([shell], postUrl("202", "p"));
+    view.navigate(postUrl("203", "p"));
+    shell.children[0].attrs["data-stream-item-id"] = "203";
+    shell.children[0].children[0].attrs["data-stream-item-id"] = "203";
+    assert.equal(view.scan().scope, "unavailable");
+    assert.deepEqual(view.scan().files, []);
+    const next = attachment("new-file");
+    next.parentElement = shell;
+    shell.children[1] = next;
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["new-file"]);
 });
 
 test("stale detail content cannot bypass ownership through a reused keyed container", () => {

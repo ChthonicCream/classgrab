@@ -134,7 +134,7 @@
     "message": "Aucune pièce jointe Classroom compatible n'a été trouvée."
   },
   "openClassPost": {
-    "message": "Ouvrez les détails complets d'une publication ou d'un devoir précis du cours pour voir ses fichiers."
+    "message": "Ouvrez les détails d'une publication. Pour une annonce, choisissez Copier le lien dans son menu, puis ouvrez ce lien."
   },
   "fileFailed": {
     "message": "$FILE$ a échoué: $ERROR$",

@@ -309,11 +309,23 @@ function belongsToCurrentPost(element, postIds, courseIds) {
 const detailOwners = new WeakMap();
 
 function getCurrentDetailRoot(route, postIds, courseIds) {
-    if (route.kind !== "a" && route.kind !== "m") return null;
-    const candidates = Array.from(document.querySelectorAll('main, [role="main"], .Iwp0Ue.xWw7yd'))
+    if (!["a", "m", "p"].includes(route.kind)) return null;
+    const selector = 'main, [role="main"], .Iwp0Ue.xWw7yd' + (route.kind === "p" ? ", .EE538" : "");
+    const candidates = Array.from(document.querySelectorAll(selector))
         .filter((node) => isVisiblePostElement(node) && node.getClientRects().length > 0)
         .filter((node) => belongsToCurrentPost(node, postIds, courseIds))
-        .filter((node) => Array.from(node.querySelectorAll("h1")).filter(isVisiblePostElement).length === 1)
+        .filter((node) => {
+            // Announcement details use a headerless shell around the post
+            // controls and file cards. Require a visible current-post marker
+            // inside that known shell; never infer a post from a file alone.
+            if (route.kind === "p" && node.matches(".EE538")) {
+                return Array.from(node.querySelectorAll("[data-stream-item-id]"))
+                    .some((post) => postIds.has(post.getAttribute("data-stream-item-id"))
+                        && belongsToCurrentPost(post, postIds, courseIds)
+                        && isVisiblePostElement(post) && post.getClientRects().length > 0);
+            }
+            return Array.from(node.querySelectorAll("h1")).filter(isVisiblePostElement).length === 1;
+        })
         .filter((node) => !Array.from(node.querySelectorAll("[data-stream-item-id]"))
             .some((post) => isVisiblePostElement(post) && !belongsToCurrentPost(post, postIds, courseIds)));
     // Prefer the smallest detail surface when a main contains a detail shell.
@@ -341,7 +353,7 @@ function rememberCurrentDetailContent(root, route, postIds, courseIds) {
     };
     // Google may update a heading/link in place. Changed content can acquire a
     // new owner; unchanged links from the old post must wait for rendering.
-    if (links.some(isUnchangedOldNode) || [...signatures.keys()].every(isUnchangedOldNode)) return false;
+    if (links.some(isUnchangedOldNode) || (signatures.size > 0 && [...signatures.keys()].every(isUnchangedOldNode))) return false;
     signatures.forEach((signature, node) => detailOwners.set(node, { identity, signature }));
     return true;
 }

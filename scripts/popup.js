@@ -42,7 +42,7 @@ const fallbackMessages = {
     unexpectedClassroomResponse: "ClassGrab received an unexpected response from the Classroom tab.",
     refreshClassroomRetry: "Refresh the Classroom page and try again.",
     noSupportedFiles: "No supported Classroom attachment files found.",
-    openClassPost: "Open the full details of a specific class post or assignment to see its files.",
+    openClassPost: "Open one post's details. For announcements, use the post menu's Copy link option, then open that link.",
     fileFailed: "$1 failed: $2",
     downloadVerificationWarning: "$1 finished, but ClassGrab could not verify the downloaded file type.",
     htmlDownloadWarning: "$1 downloaded as an HTML page. Open the original Drive file and use Download anyway.",

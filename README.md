@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.6-6366f1?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.7-6366f1?style=for-the-badge">
   <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-listed-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
   <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-listed-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
 </p>
@@ -43,7 +43,7 @@ ClassGrab is distributed through:
 - Chrome Web Store
 - Microsoft Edge Add-ons
 
-Current package: v1.1.6. Complete the live browser checks in the [store submission guide](docs/store-submission.md) before uploading. GitHub updates do not automatically update either store.
+Current package: v1.1.7. Complete the live browser checks in the [store submission guide](docs/store-submission.md) before uploading. GitHub updates do not automatically update either store.
 
 Packaged locales are English, Spanish, French, Simplified Chinese, and Vietnamese. ClassGrab v1.0.0 was the first store release. Other browser stores are not part of the current release scope. Open a feature request if you want another browser supported.
 
@@ -72,6 +72,10 @@ turn off other ClassGrab copies while testing so the old scanner is not used.
 6. Keep the popup open during preparation. It closes when the batch has started successfully; reopen it to see saved statuses. Errors and manual-confirmation notices keep it open.
 7. If Google Drive still requires manual confirmation, ClassGrab opens its file page in a background tab so the remaining files can start. Switch to that tab to finish the download.
 
+For announcements on the Stream, use the announcement's three-dot menu >
+**Copy link**, open that link in the address bar, then open ClassGrab. The
+Stream itself is not a selected post, so ClassGrab does not collect its files.
+
 ## Supported Attachments
 
 | Source | Download behavior |
@@ -83,6 +87,13 @@ turn off other ClassGrab copies while testing so the old scanner is not used.
 | Unsupported links | Ignored for now |
 
 ## Versions
+
+### v1.1.7
+
+- Added attachment detection for announcement detail pages, including the layout without a main area or heading.
+- Require a matching current-post marker inside the announcement container and preserve stale-file checks during navigation.
+- Explain how to open a single announcement from the Stream in all five popup languages.
+- Added announcement discovery, containment, empty-post, and navigation regressions.
 
 ### v1.1.6
 

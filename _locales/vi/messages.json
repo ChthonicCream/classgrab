@@ -134,7 +134,7 @@
     "message": "Không tìm thấy tệp đính kèm Classroom được hỗ trợ."
   },
   "openClassPost": {
-    "message": "Mở trang chi tiết đầy đủ của một bài đăng hoặc bài tập cụ thể trong lớp để xem các tệp của bài đó."
+    "message": "Mở trang chi tiết của một bài đăng. Với thông báo, chọn Sao chép đường liên kết trong trình đơn của bài đăng rồi mở liên kết đó."
   },
   "fileFailed": {
     "message": "$FILE$ thất bại: $ERROR$",

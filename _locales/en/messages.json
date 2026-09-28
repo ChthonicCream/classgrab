@@ -134,7 +134,7 @@
     "message": "No supported Classroom attachment files found."
   },
   "openClassPost": {
-    "message": "Open the full details of a specific class post or assignment to see its files."
+    "message": "Open one post's details. For announcements, use the post menu's Copy link option, then open that link."
   },
   "fileFailed": {
     "message": "$FILE$ failed: $ERROR$",

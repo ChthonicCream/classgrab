@@ -134,7 +134,7 @@
     "message": "No se encontraron archivos adjuntos compatibles de Classroom."
   },
   "openClassPost": {
-    "message": "Abre los detalles completos de una publicación o tarea concreta de la clase para ver sus archivos."
+    "message": "Abre los detalles de una publicación. Para los anuncios, elige Copiar enlace en el menú de la publicación y abre ese enlace."
   },
   "fileFailed": {
     "message": "$FILE$ falló: $ERROR$",

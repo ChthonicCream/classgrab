@@ -134,7 +134,7 @@
     "message": "未找到受支持的 Classroom 附件文件。"
   },
   "openClassPost": {
-    "message": "请打开某个班级帖子或作业的完整详情，查看其文件。"
+    "message": "请打开一个帖子的详情。对于公告，请在该帖子的菜单中选择“复制链接”，然后打开该链接。"
   },
   "fileFailed": {
     "message": "$FILE$ 失败：$ERROR$",
