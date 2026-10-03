@@ -23,8 +23,18 @@ class Element {
     }
 
     get href() { return new URL(this.attrs.href, origin).href; }
+    get className() { return this.attrs.class || ""; }
+    set className(value) { this.attrs.class = value; }
+    get isConnected() { return this.tagName === "HTML" || Boolean(this.parentElement?.isConnected); }
     getAttribute(name) { return this.attrs[name] ?? null; }
     hasAttribute(name) { return Object.hasOwn(this.attrs, name); }
+    setAttribute(name, value) { this.attrs[name] = String(value); }
+    appendChild(child) { child.parentElement = this; this.children.push(child); return child; }
+    remove() {
+        if (this.parentElement) this.parentElement.children = this.parentElement.children.filter((node) => node !== this);
+        this.parentElement = null;
+    }
+    addEventListener(type, handler) { (this.handlers ||= {})[type] = handler; }
 
     matches(selector) {
         return selector.split(",").some((part) => {
@@ -69,24 +79,48 @@ const post = (id, children, attrs = {}) => new Element("article", {
 
 function fixture(children, url = postUrl("202")) {
     const body = new Element("body", {}, children);
-    const document = { body, querySelectorAll: (selector) => body.querySelectorAll(selector) };
+    const document = {
+        body, documentElement: new Element("html", {}, [body]),
+        querySelectorAll: (selector) => body.querySelectorAll(selector),
+        createElement: (tag) => new Element(tag),
+    };
     let listener;
+    let now = Date.now();
+    let tokenSequence = 0;
+    let launchResult = { ok: true };
+    const messages = [];
     const sandbox = {
         URL,
+        Date: class extends Date { static now() { return now; } },
+        crypto: { randomUUID: () => `00000000-0000-4000-8000-${String(++tokenSequence).padStart(12, "0")}` },
         document,
         location: { href: url },
         atob: (value) => Buffer.from(value, "base64").toString("binary"),
         getComputedStyle: (element) => ({ display: "block", visibility: "visible", ...element.style }),
-        chrome: { runtime: { onMessage: { addListener(callback) { listener = callback; } } } },
+        chrome: {
+            i18n: { getMessage: () => "" },
+            runtime: {
+                onMessage: { addListener(callback) { listener = callback; } },
+                sendMessage: async (request) => { messages.push(request); return launchResult; },
+            },
+        },
     };
     vm.createContext(sandbox);
     vm.runInContext(source, sandbox);
     return {
         body,
+        messages,
+        get buttons() { return body.querySelectorAll(".classgrab-stream-download"); },
+        async click(index = 0, isTrusted = true) {
+            await this.buttons[index].handlers.click({ isTrusted, preventDefault() {}, stopPropagation() {} });
+        },
+        advance(milliseconds) { now += milliseconds; },
+        failLaunch() { launchResult = { ok: false }; },
+        refresh() { sandbox.refreshClassroomView(); },
         navigate(nextUrl) { sandbox.location.href = nextUrl; },
-        scan() {
+        scan(request = {}) {
             let response;
-            listener({ action: "getDriveLinks" }, {}, (value) => { response = value; });
+            listener({ action: "getDriveLinks", ...request }, {}, (value) => { response = value; });
             return JSON.parse(JSON.stringify(response));
         },
     };
@@ -384,4 +418,93 @@ test("a reused unmarked anchor is reassigned when its actual href changes", () =
     main.children[0].textContent = "Next assignment";
     link.attrs.href = "https://drive.google.com/file/d/next/view";
     assert.deepEqual(view.scan().files.map((file) => file.fileId), ["next"]);
+});
+
+const streamUrl = `${origin}/u/0/c/${encodeId("101")}`;
+const streamCard = (id, children, attrs = {}) => new Element("div", { class: "n4xnA JUr7jb", ...attrs }, [
+    new Element("div", { "data-stream-item-id": id }),
+    new Element("div", { "data-stream-item-id": id }),
+    ...children,
+]);
+const selectedRequest = (view) => ({ postId: view.messages.at(-1).postId, selectionToken: view.messages.at(-1).token });
+
+test("Stream buttons download only the clicked card and replace the previous selection", async () => {
+    const view = fixture([new Element("main", {}, [
+        streamCard("202", [attachment("first"), attachment("first")]),
+        streamCard("203", [attachment("second")]),
+    ])], streamUrl);
+    assert.equal(view.buttons.length, 2);
+    assert.equal(view.scan().scope, "not-post", "toolbar scans must not choose a Stream post automatically");
+    await view.click(0);
+    const first = selectedRequest(view);
+    assert.equal(view.messages[0].action, "openPostDownloads");
+    assert.deepEqual(view.scan(first).files.map((item) => item.fileId), ["first"]);
+    await view.click(1);
+    assert.deepEqual(view.scan(selectedRequest(view)).files.map((item) => item.fileId), ["second"]);
+    assert.deepEqual(view.scan(first).files, [], "an older launch cannot acquire the newly selected card");
+});
+
+test("Stream selection requires a trusted button click and the private selection token", async () => {
+    const view = fixture([streamCard("202", [attachment("first")])], streamUrl);
+    assert.deepEqual(view.scan({ postId: "202", selectionToken: "made-up" }).files, []);
+    await view.click(0, false);
+    assert.equal(view.messages.length, 0);
+    await view.click();
+    const request = selectedRequest(view);
+    assert.equal(view.scan(request).files.length, 1);
+    assert.deepEqual(view.scan({ ...request, postId: "203" }).files, []);
+    view.advance(5 * 60 * 1000 + 1);
+    assert.deepEqual(view.scan(request).files, []);
+});
+
+test("Stream buttons exclude hidden, foreign, ambiguous and unsupported cards", () => {
+    const view = fixture([
+        streamCard("202", [attachment("valid")]),
+        streamCard("203", [attachment("hidden")], { hidden: "" }),
+        streamCard("204", [attachment("wrong-course")], { "data-course-id": "999" }),
+        streamCard("205", [attachment("mixed"), post("206", [])]),
+        streamCard("207", [attachment("duplicate-one")]),
+        streamCard("207", [attachment("duplicate-two")]),
+        streamCard("208", [new Element("a", { href: "https://example.invalid/" })]),
+        new Element("div", {}, [post("209", []), attachment("unscoped")]),
+    ], streamUrl);
+    assert.equal(view.buttons.length, 1);
+});
+
+test("a selected Stream card cannot be replaced, relabeled or used after leaving the Stream", async () => {
+    for (const change of ["replace", "relabel", "navigate"]) {
+        const card = streamCard("202", [attachment("selected")]);
+        const view = fixture([card], streamUrl);
+        await view.click();
+        const request = selectedRequest(view);
+        if (change === "replace") {
+            card.remove();
+            view.body.appendChild(streamCard("202", [attachment("replacement")]));
+        } else if (change === "relabel") {
+            card.children[0].attrs["data-stream-item-id"] = "203";
+            card.children[1].attrs["data-stream-item-id"] = "203";
+        } else {
+            view.navigate(postUrl("202"));
+        }
+        assert.deepEqual(view.scan(request).files, [], change);
+    }
+});
+
+test("Stream button rendering is idempotent and cleans up after navigation", () => {
+    const view = fixture([streamCard("202", [attachment("file")])], streamUrl);
+    view.refresh();
+    view.refresh();
+    assert.equal(view.buttons.length, 1);
+    view.navigate(postUrl("202"));
+    view.refresh();
+    assert.equal(view.buttons.length, 0);
+});
+
+test("a failed popup launch revokes the Stream selection", async () => {
+    const view = fixture([streamCard("202", [attachment("file")])], streamUrl);
+    view.failLaunch();
+    await view.click();
+    assert.deepEqual(view.scan(selectedRequest(view)).files, []);
+    assert.equal(view.buttons[0].disabled, false);
+    assert.ok(view.body.querySelectorAll(".classgrab-stream-status")[0].textContent);
 });

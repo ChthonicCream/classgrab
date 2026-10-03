@@ -25,6 +25,9 @@ function loadDownloadBatch(overrides = {}) {
         setControlsDisabled() {},
         updateFileStatus() {},
         prepareDownloadUrl: async (file) => ({ url: file.link, note: null }),
+        ensureCurrentFiles: async () => true,
+        loadedPageUrl: "https://classroom.google.com/c/mock/a/mock-post/details",
+        loadedPostId: "mock-post",
         startDownload: async () => {},
         openManualDownload() {},
         sendRuntimeMessage: async () => ({ statuses: {} }),
@@ -227,6 +230,87 @@ async function testManualFallbackRechecksDuplicateHistory() {
     }
 }
 
+async function testNavigationDuringManualHistoryBlocksTheTab() {
+    let current = true;
+    let manualOpens = 0;
+    const sandbox = loadDownloadBatch({
+        console: { error() {} },
+        prepareDownloadUrl: async () => ({ manualUrl: "https://drive.google.com/file/d/mock/view" }),
+        ensureCurrentFiles: async () => current,
+        sendRuntimeMessage: async () => {
+            // The post was valid after preparation, but changes while the
+            // duplicate-history response is pending.
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            current = false;
+            return { statuses: {} };
+        },
+        openManualDownload: async () => { manualOpens++; },
+    });
+    const result = await sandbox.downloadBatch(makeFiles(1));
+    assert.equal(manualOpens, 0, "navigation during history lookup must block the manual tab");
+    assert.equal(result.failed, 1);
+}
+
+async function testNavigationDuringPreparationBlocksBothStartPaths() {
+    for (const launched of [false, true]) {
+        for (const manual of [false, true]) {
+            const originalUrl = launched
+                ? "https://classroom.google.com/c/mock"
+                : "https://classroom.google.com/c/mock/a/mock-post/details";
+            const nextUrl = launched ? originalUrl : originalUrl.replace("mock-post", "mock-next");
+            let currentUrl = originalUrl;
+            let currentPost = "mock-post";
+            let starts = 0;
+            let manualOpens = 0;
+            const targetFiles = makeFiles(2);
+            const sandbox = loadDownloadBatch({
+                console: { error() {} },
+                Set, Promise,
+                loadedPageUrl: originalUrl,
+                loadedPostId: "mock-post",
+                postLaunch: launched ? {
+                    token: "synthetic-batch-launch-token-000001", postId: "mock-post",
+                    pageUrl: originalUrl, tabId: 1, windowId: 7, documentId: "synthetic-document",
+                } : null,
+                files: targetFiles,
+                t: (key) => key,
+                renderEmptyState() { sandbox.files = []; },
+                renderFiles(files) { sandbox.files = files; },
+                renderUnsupportedPage() {},
+                extractAuthUser: () => "0",
+                chrome: {
+                    tabs: {
+                        query: async () => [{ id: 1, windowId: 7, active: true, url: currentUrl }],
+                        get: async () => ({ id: 1, windowId: 7, active: true, url: currentUrl }),
+                        sendMessage: async () => ({
+                            scope: "post", pageUrl: currentUrl, postId: currentPost, files: targetFiles,
+                        }),
+                    },
+                    windows: { get: async (id) => ({ id, focused: true }) },
+                },
+                prepareDownloadUrl: async (file) => {
+                    // Both posts contain the same attachment IDs. The first
+                    // failed check can refresh the list, but must not rebind
+                    // the remaining preparation workers to the new post.
+                    await new Promise((resolve) => setTimeout(resolve, Number(file.id) * 10));
+                    currentUrl = nextUrl;
+                    currentPost = "mock-next";
+                    return manual ? { manualUrl: file.link } : { url: file.link };
+                },
+                startDownload: async () => { starts++; },
+                openManualDownload: async () => { manualOpens++; },
+            });
+            const flowStart = popupSource.indexOf("async function readCurrentPost()");
+            const flowEnd = popupSource.indexOf('selectAll.addEventListener("change"', flowStart);
+            vm.runInContext(popupSource.slice(flowStart, flowEnd), sandbox);
+            const result = await sandbox.downloadBatch(targetFiles);
+            assert.equal(starts, 0, "navigation during preparation must block automatic starts");
+            assert.equal(manualOpens, 0, "navigation during preparation must block manual tabs");
+            assert.equal(result.failed, 2, "all original workers must retain the original post boundary");
+        }
+    }
+}
+
 (async () => {
     await testBulkPreparationUsesBoundedConcurrency();
     await testOneFailureDoesNotStopTheBatch();
@@ -234,6 +318,8 @@ async function testManualFallbackRechecksDuplicateHistory() {
     await testManualFallbackFailureIsReported();
     await testFailureDuringPreparationIsPreserved();
     await testManualFallbackRechecksDuplicateHistory();
+    await testNavigationDuringManualHistoryBlocksTheTab();
+    await testNavigationDuringPreparationBlocksBothStartPaths();
     console.log("Download batch concurrency tests passed.");
 })().catch((error) => {
     console.error(error);

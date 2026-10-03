@@ -3,7 +3,7 @@
     "message": "ClassGrab"
   },
   "extensionDescription": {
-    "message": "Téléchargez en lot les pièces jointes compatibles de Google Classroom depuis une seule fenêtre contextuelle."
+    "message": "Téléchargez les pièces jointes compatibles d’une publication Google Classroom ou de sa carte dans le flux."
   },
   "availableFiles": {
     "message": "Fichiers disponibles"
@@ -134,7 +134,7 @@
     "message": "Aucune pièce jointe Classroom compatible n'a été trouvée."
   },
   "openClassPost": {
-    "message": "Ouvrez les détails d'une publication. Pour une annonce, choisissez Copier le lien dans son menu, puis ouvrez ce lien."
+    "message": "Dans le flux, utilisez le bouton Télécharger les pièces jointes de ClassGrab sur une publication, ou ouvrez ses détails."
   },
   "fileFailed": {
     "message": "$FILE$ a échoué: $ERROR$",
@@ -229,5 +229,14 @@
   },
   "autoCloseHint": {
     "message": "Gardez cette fenêtre ouverte pendant la préparation des fichiers. Elle se ferme après le démarrage des téléchargements pour vous laisser voir la liste des téléchargements du navigateur."
+  },
+  "streamDownload": { "message": "ClassGrab · Télécharger les pièces jointes" },
+  "streamDownloadLabel": {
+    "message": "Télécharger $COUNT$ pièce(s) jointe(s) de cette publication avec ClassGrab",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "streamOpening": { "message": "Ouverture de ClassGrab…" },
+  "streamOpenError": {
+    "message": "Impossible d’ouvrir ClassGrab. Actualisez Classroom et réessayez, ou ouvrez les détails de cette publication et utilisez l’icône de l’extension."
   }
 }

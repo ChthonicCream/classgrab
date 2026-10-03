@@ -3,7 +3,7 @@
     "message": "ClassGrab"
   },
   "extensionDescription": {
-    "message": "Tải hàng loạt các tệp đính kèm Google Classroom được hỗ trợ từ một cửa sổ bật lên."
+    "message": "Tải các tệp đính kèm được hỗ trợ từ một bài đăng Google Classroom hoặc thẻ bài đăng trên Luồng."
   },
   "availableFiles": {
     "message": "Tệp có sẵn"
@@ -134,7 +134,7 @@
     "message": "Không tìm thấy tệp đính kèm Classroom được hỗ trợ."
   },
   "openClassPost": {
-    "message": "Mở trang chi tiết của một bài đăng. Với thông báo, chọn Sao chép đường liên kết trong trình đơn của bài đăng rồi mở liên kết đó."
+    "message": "Trên Luồng, dùng nút Tải tệp đính kèm của ClassGrab ở một bài đăng, hoặc mở trang chi tiết của bài đăng đó."
   },
   "fileFailed": {
     "message": "$FILE$ thất bại: $ERROR$",
@@ -229,5 +229,14 @@
   },
   "autoCloseHint": {
     "message": "Giữ cửa sổ này mở trong khi chuẩn bị các tệp. Cửa sổ sẽ đóng sau khi quá trình tải xuống bắt đầu để bạn có thể xem danh sách tải xuống của trình duyệt."
+  },
+  "streamDownload": { "message": "ClassGrab · Tải tệp đính kèm" },
+  "streamDownloadLabel": {
+    "message": "Tải $COUNT$ tệp đính kèm từ bài đăng này bằng ClassGrab",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "streamOpening": { "message": "Đang mở ClassGrab…" },
+  "streamOpenError": {
+    "message": "Không thể mở ClassGrab. Hãy làm mới Classroom rồi thử lại, hoặc mở trang chi tiết của bài đăng này và dùng biểu tượng tiện ích."
   }
 }

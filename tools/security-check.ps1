@@ -69,7 +69,8 @@ $RequiredLocaleMessages = @(
   "statusHtmlWarning",
   "postUnavailable", "postChanged", "duplicateWarning", "skipDuplicates",
   "downloadAgain", "cancel", "summaryDuplicates", "downloadCancelled",
-  "historyUnavailable", "autoCloseHint"
+  "historyUnavailable", "autoCloseHint",
+  "streamDownload", "streamDownloadLabel", "streamOpening", "streamOpenError"
 )
 $TextExtensions = @(".css", ".html", ".js", ".json", ".md", ".ps1", ".svg", ".yml", ".yaml")
 

@@ -42,7 +42,7 @@ const fallbackMessages = {
     unexpectedClassroomResponse: "ClassGrab received an unexpected response from the Classroom tab.",
     refreshClassroomRetry: "Refresh the Classroom page and try again.",
     noSupportedFiles: "No supported Classroom attachment files found.",
-    openClassPost: "Open one post's details. For announcements, use the post menu's Copy link option, then open that link.",
+    openClassPost: "On the Stream, use ClassGrab’s Download attachments button on one post, or open that post’s details.",
     fileFailed: "$1 failed: $2",
     downloadVerificationWarning: "$1 finished, but ClassGrab could not verify the downloaded file type.",
     htmlDownloadWarning: "$1 downloaded as an HTML page. Open the original Drive file and use Download anyway.",
@@ -83,6 +83,9 @@ let files = [];
 const fileStatusElements = new Map();
 const pendingDownloads = new Map();
 let loadedPageUrl = null;
+let loadedPostId = null;
+let postLaunch = null;
+let launchConsumptionStarted = false;
 let downloadRequestActive = false;
 
 function t(messageName, substitutions = []) {
@@ -452,6 +455,7 @@ async function downloadBatch(targetFiles, allowDuplicate = false, skipped = 0) {
         setStatus(t("selectAtLeastOneFile"), "warning");
         return;
     }
+    const expectedPost = { pageUrl: loadedPageUrl, postId: loadedPostId };
 
     setControlsDisabled(true);
     setStatus(t("preparingFiles", String(targetFiles.length)), "info");
@@ -474,6 +478,12 @@ async function downloadBatch(targetFiles, allowDuplicate = false, skipped = 0) {
             try {
                 const prepared = await prepareDownloadUrl(file);
 
+                // The user can navigate while a slow Drive confirmation is
+                // prepared. Recheck the selected post before either start path.
+                if (!await ensureCurrentFiles([file], expectedPost)) {
+                    throw new Error(t("postChanged"));
+                }
+
                 if (prepared.note) {
                     notes += 1;
                 }
@@ -490,6 +500,9 @@ async function downloadBatch(targetFiles, allowDuplicate = false, skipped = 0) {
                         skipped += 1;
                         updateFileStatus(file.id, status.label, status.type);
                         continue;
+                    }
+                    if (!await ensureCurrentFiles([file], expectedPost)) {
+                        throw new Error(t("postChanged"));
                     }
                     await openManualDownload(file, prepared.manualUrl);
                     manual += 1;
@@ -703,14 +716,33 @@ function initializeTheme() {
 }
 
 async function readCurrentPost() {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    let tabs;
+    try {
+        tabs = await chrome.tabs.query(postLaunch
+            ? { active: true, lastFocusedWindow: true }
+            : { active: true, currentWindow: true });
+    } catch {
+        throw new Error(t(postLaunch ? "postChanged" : "activeTabReadError"));
+    }
     const tab = tabs && tabs[0];
-    if (!tab || !tab.url || !tab.url.startsWith("https://classroom.google.com/")) {
+    if (postLaunch && (!tab || tab.id !== postLaunch.tabId || tab.windowId !== postLaunch.windowId
+        || (tab.url && tab.url !== postLaunch.pageUrl))) {
+        throw new Error(t("postChanged"));
+    }
+    if (!postLaunch && (!tab || !tab.url || !tab.url.startsWith("https://classroom.google.com/"))) {
         return { files: [], scope: "unsupported", pageUrl: null };
     }
     let response;
     try {
-        response = await chrome.tabs.sendMessage(tab.id, { action: "getDriveLinks" });
+        const request = { action: "getDriveLinks" };
+        if (postLaunch) {
+            request.postId = postLaunch.postId;
+            request.selectionToken = postLaunch.token;
+        }
+        const target = postLaunch && postLaunch.documentId
+            ? { documentId: postLaunch.documentId }
+            : { frameId: 0 };
+        response = await chrome.tabs.sendMessage(tab.id, request, target);
     } catch (error) {
         throw new Error(t("classroomConnectError"));
     }
@@ -718,8 +750,34 @@ async function readCurrentPost() {
         !["post", "not-post", "unavailable"].includes(response.scope)) {
         throw new Error(t("unexpectedClassroomResponse"));
     }
-    const currentTab = await chrome.tabs.get(tab.id);
-    if (response.pageUrl !== tab.url || currentTab.url !== response.pageUrl) {
+    let currentTab;
+    try {
+        currentTab = await chrome.tabs.get(tab.id);
+    } catch {
+        throw new Error(t("postChanged"));
+    }
+    if (postLaunch) {
+        let activeTabs;
+        let browserWindow;
+        try {
+            [activeTabs, browserWindow] = await Promise.all([
+                chrome.tabs.query({ active: true, lastFocusedWindow: true }),
+                chrome.windows.get(postLaunch.windowId),
+            ]);
+        } catch {
+            throw new Error(t("postChanged"));
+        }
+        const active = activeTabs && activeTabs[0];
+        if (response.scope !== "post" || response.pageUrl !== postLaunch.pageUrl
+            || response.postId !== postLaunch.postId || currentTab.id !== postLaunch.tabId
+            || currentTab.windowId !== postLaunch.windowId || !currentTab.active
+            || !active || active.id !== postLaunch.tabId || active.windowId !== postLaunch.windowId
+            || (active.url && active.url !== postLaunch.pageUrl)
+            || (currentTab.url && currentTab.url !== postLaunch.pageUrl)
+            || !browserWindow.focused || browserWindow.id !== postLaunch.windowId) {
+            throw new Error(t("postChanged"));
+        }
+    } else if (response.pageUrl !== tab.url || currentTab.url !== response.pageUrl) {
         throw new Error(t("postChanged"));
     }
     authuser = extractAuthUser(response.pageUrl);
@@ -728,6 +786,7 @@ async function readCurrentPost() {
 
 function applyPostSnapshot(snapshot) {
     loadedPageUrl = snapshot.pageUrl;
+    loadedPostId = snapshot.postId || null;
     if (snapshot.scope === "unsupported") {
         renderEmptyState(t("classroomOnly"));
         renderUnsupportedPage();
@@ -741,19 +800,56 @@ function applyPostSnapshot(snapshot) {
 }
 
 async function loadFilesFromActiveTab() {
+    const parameters = new URLSearchParams(window.location.search);
+    const requestedLaunch = parameters.has("launch");
+    // A launch token is consumed once, even if initialization is accidentally
+    // called again while its asynchronous read is still pending.
+    if (requestedLaunch && launchConsumptionStarted) return;
+    if (requestedLaunch) launchConsumptionStarted = true;
     renderEmptyState(t("openClassPost"));
     try {
+        if (requestedLaunch) {
+            const token = parameters.get("launch");
+            let result;
+            try {
+                result = await sendRuntimeMessage({ action: "consumePostLaunch", token });
+            } catch {
+                throw new Error(t("postChanged"));
+            }
+            const launch = result && result.ok && result.launch;
+            if (!launch || launch.token !== token || !/^[A-Za-z0-9_-]{20,200}$/.test(token)
+                || !Number.isInteger(launch.tabId) || launch.tabId < 0
+                || !Number.isInteger(launch.windowId) || launch.windowId < 0
+                || typeof launch.postId !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(launch.postId)
+                || typeof launch.pageUrl !== "string" || !/^https:\/\/classroom\.google\.com\/(?:u\/\d+\/)?c\/[A-Za-z0-9_-]+\/?(?:[?#].*)?$/.test(launch.pageUrl)
+                || (launch.documentId !== undefined && (typeof launch.documentId !== "string"
+                    || !launch.documentId || launch.documentId.length > 200))) {
+                throw new Error(t("postChanged"));
+            }
+            postLaunch = launch;
+        }
         applyPostSnapshot(await readCurrentPost());
+        if (requestedLaunch && files.length) await requestDownload(files);
     } catch (error) {
         loadedPageUrl = null;
+        loadedPostId = null;
         renderEmptyState(error.message, t("refreshClassroomRetry"));
     }
 }
 
-async function ensureCurrentFiles(targetFiles) {
-    const snapshot = await readCurrentPost();
+async function ensureCurrentFiles(targetFiles, expectedPost = { pageUrl: loadedPageUrl, postId: loadedPostId }) {
+    let snapshot;
+    try {
+        snapshot = await readCurrentPost();
+    } catch (error) {
+        loadedPageUrl = null;
+        loadedPostId = null;
+        renderEmptyState(error.message);
+        throw error;
+    }
     const currentIds = new Set(snapshot.files.map((file) => file.id));
-    if (snapshot.scope !== "post" || snapshot.pageUrl !== loadedPageUrl ||
+    if (snapshot.scope !== "post" || snapshot.pageUrl !== expectedPost.pageUrl
+        || (snapshot.postId || null) !== expectedPost.postId ||
         targetFiles.some((file) => !currentIds.has(file.id))) {
         applyPostSnapshot(snapshot);
         setStatus(t("postChanged"), "warning");

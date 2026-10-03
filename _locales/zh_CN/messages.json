@@ -3,7 +3,7 @@
     "message": "ClassGrab"
   },
   "extensionDescription": {
-    "message": "从一个弹出窗口批量下载受支持的 Google Classroom 附件。"
+    "message": "从单个 Google Classroom 帖子或动态中的帖子卡片下载受支持的附件。"
   },
   "availableFiles": {
     "message": "可用文件"
@@ -134,7 +134,7 @@
     "message": "未找到受支持的 Classroom 附件文件。"
   },
   "openClassPost": {
-    "message": "请打开一个帖子的详情。对于公告，请在该帖子的菜单中选择“复制链接”，然后打开该链接。"
+    "message": "在动态中，使用某个帖子上的 ClassGrab“下载附件”按钮，或打开该帖子的详情。"
   },
   "fileFailed": {
     "message": "$FILE$ 失败：$ERROR$",
@@ -229,5 +229,14 @@
   },
   "autoCloseHint": {
     "message": "准备文件时请保持此弹出窗口打开。下载开始后，窗口会关闭，以便您查看浏览器的下载列表。"
+  },
+  "streamDownload": { "message": "ClassGrab · 下载附件" },
+  "streamDownloadLabel": {
+    "message": "使用 ClassGrab 下载此帖子的 $COUNT$ 个附件",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "streamOpening": { "message": "正在打开 ClassGrab…" },
+  "streamOpenError": {
+    "message": "无法打开 ClassGrab。请刷新 Classroom 后重试，或打开此帖子的详情并使用扩展程序图标。"
   }
 }

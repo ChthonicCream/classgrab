@@ -298,6 +298,7 @@ try {
   Invoke-CheckedCommand -Command "node" -Arguments @("tools/background-storage.test.js")
   Invoke-CheckedCommand -Command "node" -Arguments @("--test", "tools/content-scope.test.js")
   Invoke-CheckedCommand -Command "node" -Arguments @("--test", "tools/popup-flow.test.js")
+  Invoke-CheckedCommand -Command "node" -Arguments @("--test", "tools/popup-launch.test.js")
   Write-Host "==> tools/security-check.test.ps1"
   & (Join-Path $PSScriptRoot "security-check.test.ps1")
   Write-Host "==> tools/release-check.test.ps1"

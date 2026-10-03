@@ -5,6 +5,119 @@ const MAX_STATUSES = 100;
 const DOWNLOAD_HOSTS = new Set(["drive.google.com", "drive.usercontent.google.com", "docs.google.com"]);
 let storageOperationQueue = Promise.resolve();
 const unsavedDownloads = new Map();
+const POST_LAUNCH_TTL_MS = 30 * 1000;
+const POST_LAUNCH_REPLAY_MS = 5 * 60 * 1000;
+const MAX_POST_LAUNCHES = 128;
+const pendingPostLaunches = new Map();
+const usedPostLaunchTokens = new Map();
+const launchingWindows = new Set();
+
+function validLaunchToken(token) {
+    return typeof token === "string" && /^[A-Za-z0-9_-]{20,200}$/.test(token);
+}
+
+function isClassroomStream(pageUrl) {
+    try {
+        const url = new URL(pageUrl);
+        return url.origin === "https://classroom.google.com" && !url.username && !url.password
+            && /^\/(?:u\/\d+\/)?c\/[A-Za-z0-9_-]+\/?$/.test(url.pathname);
+    } catch {
+        return false;
+    }
+}
+
+function prunePostLaunches() {
+    const now = Date.now();
+    for (const [token, record] of pendingPostLaunches) {
+        if (record.expiresAt <= now) pendingPostLaunches.delete(token);
+    }
+    for (const [token, expiresAt] of usedPostLaunchTokens) {
+        if (expiresAt <= now) usedPostLaunchTokens.delete(token);
+    }
+}
+
+async function isCurrentLaunchSource(launch) {
+    const [tabs, source, browserWindow] = await Promise.all([
+        chrome.tabs.query({ active: true, lastFocusedWindow: true }),
+        chrome.tabs.get(launch.tabId),
+        chrome.windows.get(launch.windowId),
+    ]);
+    const active = tabs && tabs[0];
+    // A content-script button does not grant activeTab. URL access is optional;
+    // the document-targeted scanner verifies the exact page again in the popup.
+    return !!active && active.id === launch.tabId && active.windowId === launch.windowId
+        && source.id === launch.tabId && source.windowId === launch.windowId && source.active
+        && browserWindow.focused && browserWindow.id === launch.windowId
+        && (!active.url || active.url === launch.pageUrl)
+        && (!source.url || source.url === launch.pageUrl);
+}
+
+async function openPostDownloads(request, sender) {
+    prunePostLaunches();
+    if (sender.id !== chrome.runtime.id || sender.frameId !== 0
+        || !sender.tab || !Number.isInteger(sender.tab.id) || sender.tab.id < 0
+        || !Number.isInteger(sender.tab.windowId) || sender.tab.windowId < 0 || !sender.tab.active
+        || !validLaunchToken(request.token)
+        || typeof request.postId !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(request.postId)
+        || !isClassroomStream(sender.url) || sender.url !== request.pageUrl
+        || (sender.tab.url && sender.tab.url !== sender.url)
+        || (sender.documentId !== undefined && (typeof sender.documentId !== "string"
+            || !sender.documentId || sender.documentId.length > 200))) {
+        return { ok: false, error: "Invalid post download launch." };
+    }
+    if (usedPostLaunchTokens.has(request.token) || usedPostLaunchTokens.size >= MAX_POST_LAUNCHES
+        || launchingWindows.has(sender.tab.windowId)
+        || [...pendingPostLaunches.values()].some((record) => record.launch.windowId === sender.tab.windowId)) {
+        return { ok: false, error: "A post download launch is already active." };
+    }
+    const launch = {
+        token: request.token, postId: request.postId, pageUrl: sender.url,
+        tabId: sender.tab.id, windowId: sender.tab.windowId,
+        ...(sender.documentId ? { documentId: sender.documentId } : {}),
+    };
+    const expiresAt = Date.now() + POST_LAUNCH_TTL_MS;
+    // Keep replay protection for the lifetime of the content-script selection.
+    usedPostLaunchTokens.set(request.token, Date.now() + POST_LAUNCH_REPLAY_MS);
+    launchingWindows.add(launch.windowId);
+    let popupWasSet = false;
+    try {
+        if (!await isCurrentLaunchSource(launch)) throw new Error("The selected Stream changed.");
+        pendingPostLaunches.set(request.token, { launch, expiresAt });
+        await chrome.action.setPopup({ tabId: launch.tabId, popup: "views/popup.html?launch=" + encodeURIComponent(request.token) });
+        popupWasSet = true;
+        if (!await isCurrentLaunchSource(launch)) throw new Error("The selected Stream changed.");
+        await chrome.action.openPopup({ windowId: launch.windowId });
+        return { ok: true };
+    } catch (error) {
+        pendingPostLaunches.delete(request.token);
+        return { ok: false, error: error.message || "Could not open ClassGrab." };
+    } finally {
+        if (popupWasSet) {
+            try {
+                await chrome.action.setPopup({ tabId: launch.tabId, popup: "views/popup.html" });
+            } catch {
+                // A closed source tab no longer has a per-tab action override.
+                pendingPostLaunches.delete(request.token);
+            }
+        }
+        launchingWindows.delete(launch.windowId);
+    }
+}
+
+async function consumePostLaunch(request, sender) {
+    prunePostLaunches();
+    if (!validLaunchToken(request.token) || sender.id !== chrome.runtime.id || sender.tab
+        || sender.url !== chrome.runtime.getURL("views/popup.html?launch=" + encodeURIComponent(request.token))) {
+        return { ok: false, error: "Invalid post download launch." };
+    }
+    const record = pendingPostLaunches.get(request.token);
+    // Delete synchronously, before an await, so two popup instances cannot consume it.
+    pendingPostLaunches.delete(request.token);
+    if (!record || !await isCurrentLaunchSource(record.launch)) {
+        return { ok: false, error: "The selected Stream changed or the launch expired." };
+    }
+    return { ok: true, launch: record.launch };
+}
 
 function readStorage(keys) {
     return chrome.storage.local.get(keys);
@@ -167,6 +280,13 @@ async function startTrackedDownload(request) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (!request || typeof request.action !== "string") {
         return false;
+    }
+
+    if (request.action === "openPostDownloads" || request.action === "consumePostLaunch") {
+        const operation = request.action === "openPostDownloads" ? openPostDownloads : consumePostLaunch;
+        operation(request, sender).then(sendResponse)
+            .catch((error) => sendResponse({ ok: false, error: error.message }));
+        return true;
     }
 
     if (request.action === "startDownload") {

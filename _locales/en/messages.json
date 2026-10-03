@@ -3,7 +3,7 @@
     "message": "ClassGrab"
   },
   "extensionDescription": {
-    "message": "Bulk download supported Google Classroom attachments from one popup."
+    "message": "Download supported attachments from one Google Classroom post or its Stream card."
   },
   "availableFiles": {
     "message": "Available Files"
@@ -134,7 +134,7 @@
     "message": "No supported Classroom attachment files found."
   },
   "openClassPost": {
-    "message": "Open one post's details. For announcements, use the post menu's Copy link option, then open that link."
+    "message": "On the Stream, use ClassGrab’s Download attachments button on one post, or open that post’s details."
   },
   "fileFailed": {
     "message": "$FILE$ failed: $ERROR$",
@@ -229,5 +229,14 @@
   },
   "autoCloseHint": {
     "message": "Keep this popup open while files are prepared. It closes after downloads start so you can see the browser download list."
+  },
+  "streamDownload": { "message": "ClassGrab · Download attachments" },
+  "streamDownloadLabel": {
+    "message": "Download $COUNT$ attachment(s) from this post with ClassGrab",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "streamOpening": { "message": "Opening ClassGrab…" },
+  "streamOpenError": {
+    "message": "ClassGrab could not open. Refresh Classroom and try again, or open this post’s details and use the extension icon."
   }
 }

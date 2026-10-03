@@ -358,7 +358,10 @@ function rememberCurrentDetailContent(root, route, postIds, courseIds) {
     return true;
 }
 
-function collectCurrentPostAttachments() {
+function collectCurrentPostAttachments(request = {}) {
+    if (request.selectionToken || request.postId) {
+        return collectSelectedStreamAttachments(request);
+    }
     const pageUrl = location.href;
     const route = getCurrentPostRoute(pageUrl);
     const response = { files: [], pageUrl, postId: route?.postId || null, scope: "not-post" };
@@ -410,9 +413,168 @@ function collectCurrentPostAttachments() {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "getDriveLinks") {
-        sendResponse(collectCurrentPostAttachments());
+        sendResponse(collectCurrentPostAttachments(request));
     }
 });
+
+function getCurrentStreamRoute(pageUrl) {
+    try {
+        const url = new URL(pageUrl);
+        if (url.origin !== "https://classroom.google.com") return null;
+        const match = url.pathname.match(/^\/(?:u\/\d+\/)?c\/([A-Za-z0-9_-]+)\/?$/);
+        return match ? { courseId: match[1] } : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function canonicalClassroomId(id) {
+    const variants = classroomIdVariants(id);
+    return [...variants].find((value) => /^\d+$/.test(value)) || id;
+}
+
+function isRenderedPostElement(element) {
+    return isVisiblePostElement(element) && element.getClientRects().length > 0;
+}
+
+// A Stream marker can live on an empty menu beside the attachments. Use the
+// card boundary observed in Classroom, never a common ancestor of the feed.
+function describeStreamCard(root, route) {
+    if (!root.isConnected || !isRenderedPostElement(root)) return null;
+    if (Array.from(root.querySelectorAll(".n4xnA")).some(isRenderedPostElement)) return null;
+    const markers = Array.from(root.querySelectorAll("[data-stream-item-id]"));
+    if (root.hasAttribute("data-stream-item-id")) markers.push(root);
+    const visibleMarkers = markers.filter(isRenderedPostElement);
+    const ids = new Set(visibleMarkers.map((node) => canonicalClassroomId(node.getAttribute("data-stream-item-id"))));
+    if (ids.size !== 1) return null;
+    const postId = [...ids][0];
+    if (!/^[A-Za-z0-9_-]+$/.test(postId)) return null;
+    const postIds = classroomIdVariants(postId);
+    // Include both representations if the card happens to mix encoded and
+    // decimal markers; every marker must still name this one post and course.
+    visibleMarkers.forEach((node) => postIds.add(node.getAttribute("data-stream-item-id")));
+    const courseIds = classroomIdVariants(route.courseId);
+    if (![root, ...visibleMarkers].every((node) => belongsToCurrentPost(node, postIds, courseIds))) return null;
+    const filesById = new Map();
+    for (const anchor of root.querySelectorAll("a[href]")) {
+        if (!isRenderedPostElement(anchor) || !belongsToCurrentPost(anchor, postIds, courseIds)) continue;
+        const file = buildAttachment(anchor);
+        if (file && !filesById.has(file.id)) filesById.set(file.id, file);
+    }
+    return { root, postId, files: [...filesById.values()] };
+}
+
+function findStreamCards(route) {
+    const cards = Array.from(document.querySelectorAll(".n4xnA"))
+        .map((root) => describeStreamCard(root, route)).filter(Boolean);
+    const counts = new Map();
+    cards.forEach(({ postId }) => counts.set(postId, (counts.get(postId) || 0) + 1));
+    // If Classroom renders two visible copies, require the user to open the
+    // details rather than guessing which copy is the current attachment list.
+    return cards.filter(({ postId }) => counts.get(postId) === 1);
+}
+
+const streamControls = new Map();
+const STREAM_SELECTION_TTL_MS = 5 * 60 * 1000;
+let selectedStreamPost = null;
+
+function getSelectedStreamCard(request) {
+    const route = getCurrentStreamRoute(location.href);
+    const selection = selectedStreamPost;
+    if (!route || !selection || Date.now() >= selection.expiresAt
+        || selection.pageUrl !== location.href || selection.token !== request.selectionToken
+        || selection.postId !== request.postId) return null;
+    return findStreamCards(route).find((card) => card.root === selection.root && card.postId === selection.postId) || null;
+}
+
+function collectSelectedStreamAttachments(request) {
+    const card = getSelectedStreamCard(request);
+    return {
+        files: card?.files || [], pageUrl: location.href,
+        postId: card?.postId || null, scope: card ? "post" : "unavailable",
+    };
+}
+
+function streamMessage(key, fallback, substitutions) {
+    try {
+        return chrome.i18n.getMessage(key, substitutions) || fallback;
+    } catch (error) {
+        return fallback;
+    }
+}
+
+function renderStreamControls() {
+    const route = getCurrentStreamRoute(location.href);
+    const cards = route ? findStreamCards(route).filter((card) => card.files.length > 0) : [];
+    const byRoot = new Map(cards.map((card) => [card.root, card]));
+    for (const [root, control] of streamControls) {
+        if (!byRoot.has(root) || !root.contains(control.row)) {
+            control.row.remove();
+            streamControls.delete(root);
+        }
+    }
+    if (selectedStreamPost && !getSelectedStreamCard({
+        postId: selectedStreamPost.postId, selectionToken: selectedStreamPost.token,
+    })) selectedStreamPost = null;
+
+    for (const card of cards) {
+        let control = streamControls.get(card.root);
+        if (!control) {
+            const row = document.createElement("div");
+            row.className = "classgrab-stream-controls";
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "classgrab-stream-download";
+            const status = document.createElement("span");
+            status.className = "classgrab-stream-status";
+            status.setAttribute("role", "status");
+            status.setAttribute("aria-live", "polite");
+            row.appendChild(button);
+            row.appendChild(status);
+            card.root.appendChild(row);
+            control = { row, button, status };
+            streamControls.set(card.root, control);
+            button.addEventListener("click", async (event) => {
+                // Scripts running in Classroom cannot turn a synthetic click
+                // into a download. The selection token stays in this world.
+                if (!event.isTrusted || button.disabled) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const currentRoute = getCurrentStreamRoute(location.href);
+                const current = currentRoute && findStreamCards(currentRoute).find((item) => item.root === card.root);
+                if (!current || current.files.length === 0) {
+                    status.textContent = streamMessage("postChanged", "The current post changed. Review its files before downloading.");
+                    renderStreamControls();
+                    return;
+                }
+                const selection = {
+                    root: current.root, postId: current.postId, pageUrl: location.href,
+                    token: crypto.randomUUID(), expiresAt: Date.now() + STREAM_SELECTION_TTL_MS,
+                };
+                selectedStreamPost = selection;
+                button.disabled = true;
+                status.textContent = streamMessage("streamOpening", "Opening ClassGrab…");
+                try {
+                    const result = await chrome.runtime.sendMessage({
+                        action: "openPostDownloads", token: selection.token,
+                        postId: selection.postId, pageUrl: selection.pageUrl,
+                    });
+                    if (!result?.ok) throw new Error("popup unavailable");
+                    status.textContent = "";
+                } catch (error) {
+                    if (selectedStreamPost === selection) selectedStreamPost = null;
+                    status.textContent = streamMessage("streamOpenError", "ClassGrab could not open. Refresh Classroom and try again, or open this post’s details and use the extension icon.");
+                } finally {
+                    button.disabled = false;
+                }
+            });
+        }
+        const label = streamMessage("streamDownload", "ClassGrab · Download attachments");
+        if (control.button.textContent !== label) control.button.textContent = label;
+        const description = streamMessage("streamDownloadLabel", `Download ${card.files.length} attachment(s) from this post with ClassGrab`, [String(card.files.length)]);
+        if (control.button.getAttribute("aria-label") !== description) control.button.setAttribute("aria-label", description);
+    }
+}
 
 function rememberRenderedDetails() {
     const route = getCurrentPostRoute(location.href);
@@ -426,7 +588,12 @@ function rememberRenderedDetails() {
 // Remember ownership while Classroom renders, including visits where the
 // popup was never opened. This prevents the first scan after Back/new-post
 // navigation from assigning still-mounted old detail cards to the new URL.
-rememberRenderedDetails();
+function refreshClassroomView() {
+    rememberRenderedDetails();
+    renderStreamControls();
+}
+
+refreshClassroomView();
 if (typeof MutationObserver === "function") {
     let pending = false;
     new MutationObserver(() => {
@@ -434,10 +601,12 @@ if (typeof MutationObserver === "function") {
         pending = true;
         requestAnimationFrame(() => {
             pending = false;
-            rememberRenderedDetails();
+            refreshClassroomView();
         });
     }).observe(document.documentElement, {
         childList: true, subtree: true, characterData: true, attributes: true,
-        attributeFilter: ["href", "hidden", "aria-hidden", "inert", "class", "style", "data-drive-id", "data-item-id"],
+        attributeFilter: ["href", "hidden", "aria-hidden", "inert", "class", "style", "data-drive-id", "data-item-id", "data-stream-item-id", "data-course-id"],
     });
 }
+// Back/Forward can update the route before Classroom mutates its retained DOM.
+if (typeof window !== "undefined") window.addEventListener("popstate", refreshClassroomView);

@@ -5,27 +5,29 @@
 </p>
 
 <p align="center">
-  Bulk download Google Classroom attachments from one popup.
+  Download one Google Classroom post's attachments from its Stream card or popup.
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.1.7-6366f1?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.2.0-6366f1?style=for-the-badge">
   <img alt="Chrome" src="https://img.shields.io/badge/Chrome-supported-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
   <img alt="Edge" src="https://img.shields.io/badge/Edge-supported-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
 </p>
 
 ClassGrab is a small Chromium extension for students and teachers who want to save the files attached to a Google Classroom post without opening each attachment one by one.
 
-It is intended for **Google Chrome** and **Microsoft Edge** only. Requests for Firefox, Safari, or other browser builds should be opened as GitHub issues so they can be discussed and tracked separately.
+It is intended for **Google Chrome** and **Microsoft Edge** only. Version 1.2.0 requires Chromium 127 or newer to open the popup from a Stream button. Requests for Firefox, Safari, or other browser builds should be opened as GitHub issues so they can be discussed and tracked separately.
 
-![Historical ClassGrab v1.1.1 popup preview](assets/classgrab-preview.png)
+![ClassGrab 1.2.0 Stream buttons on a synthetic example](store-assets/classgrab-stream-1.2.0-1280x800.png)
 
-This historical image shows v1.1.1. Replace it with a redacted capture of the
-tested build before using it to illustrate the current store update.
+This capture shows the actual 1.2.0 controls on a synthetic example with no
+account connected. Signed-in Classroom and real downloads still require the
+manual checks in the store guide.
 
 ## Features
 
 - Download all supported attachments from the current Classroom post.
+- Use **ClassGrab · Download attachments** on a Stream post to start that post's files immediately, without opening its details.
 - Select only the files you want before starting downloads.
 - Prepares multiple attachments concurrently for faster bulk download startup.
 - Supports Google Drive file links and exports Google Docs, Sheets, and Slides to Office formats.
@@ -33,7 +35,7 @@ tested build before using it to illustrate the current store update.
 - Shows visible per-file status and remembers recent outcomes after the popup closes.
 - Preserves every status record when several downloads start together.
 - Deduplicates repeated Classroom anchors for the same attachment.
-- Reads only the open post and excludes the stream and previously visited posts.
+- Downloads only the open post or the Stream card you clicked, excluding other and previously visited posts.
 - Warns about recent ClassGrab downloads before repeating them, with Skip duplicates, Download again, and Cancel choices.
 - Closes the popup after a successful batch starts so the browser download list is unobstructed.
 - Dark and light popup themes.
@@ -46,10 +48,11 @@ ClassGrab is distributed through:
 - Chrome Web Store
 - Microsoft Edge Add-ons
 
-Current package: v1.1.7. Complete the live browser checks in the [store submission guide](docs/store-submission.md) before uploading. GitHub updates do not automatically update either store.
+Current package: v1.2.0. Complete the live browser checks in the [store submission guide](docs/store-submission.md) before uploading. GitHub updates do not automatically update either store.
 
-The [local release audit](docs/release-audit-1.1.7.md) records package validation
-and the remaining manual gates. Store publication of v1.1.7 is not verified here.
+The [1.2.0 release handoff](docs/release-1.2.0.md) records validation and the
+remaining manual gates. The [1.1.7 audit](docs/release-audit-1.1.7.md) is historical.
+Store publication of v1.2.0 is not verified here.
 
 Packaged locales are English, Spanish, French, Simplified Chinese, and Vietnamese. ClassGrab v1.0.0 was the first store release. Other browser stores are not part of the current release scope. Open a feature request if you want another browser supported.
 
@@ -70,6 +73,14 @@ turn off other ClassGrab copies while testing so the old scanner is not used.
 
 ## Usage
 
+On the class **Stream**, click **ClassGrab · Download attachments** beneath
+one post's attachments. ClassGrab opens and starts only that card's supported
+files, after any duplicate decision. No announcement detail page is required.
+The button appears on identifiable cards with supported attachments; unknown
+or ambiguous cards have no button. Use the details workflow below for those.
+
+To select individual files, open the post's details and use the extension icon:
+
 1. Open a Google Classroom post, assignment, or announcement with file attachments.
 2. Click the ClassGrab extension icon.
 3. Select individual files, or use Select All.
@@ -78,9 +89,10 @@ turn off other ClassGrab copies while testing so the old scanner is not used.
 6. Keep the popup open during preparation. It closes when the batch has started successfully; reopen it to see saved statuses. Errors and manual-confirmation notices keep it open.
 7. If Google Drive still requires manual confirmation, ClassGrab opens its file page in a background tab so the remaining files can start. Switch to that tab to finish the download.
 
-For announcements on the Stream, use the announcement's three-dot menu >
-**Copy link**, open that link in the address bar, then open ClassGrab. The
-Stream itself is not a selected post, so ClassGrab does not collect its files.
+The toolbar icon on the Stream shows instructions instead of choosing a post
+automatically. For an announcement without a button, use its three-dot menu >
+**Copy link**, open that link in the address bar, then open ClassGrab.
+Switching tabs or posts during preparation stops files that have not started.
 
 ## Supported Attachments
 
@@ -93,6 +105,15 @@ Stream itself is not a selected post, so ClassGrab does not collect its files.
 | Unsupported links | Ignored for now |
 
 ## Versions
+
+### v1.2.0
+
+- Added a localized ClassGrab download button to each identifiable Stream card with supported attachments, including announcements.
+- A button opens the popup and starts only its own post's files through the existing duplicate warning and download flow.
+- Pin the clicked card, post, tab, window, and document with a short-lived launch token; reject stale, replayed, hidden, or ambiguous selections.
+- Recheck the original post after Drive preparation, before automatic downloads or manual-confirmation tabs.
+- Keep successful popup closure, bounded concurrent preparation, and the audited v1.1.7 history/duplicate protections.
+- Require Chromium 127 or newer for the Stream popup API; no additional permissions.
 
 ### v1.1.7
 
@@ -171,7 +192,10 @@ ClassGrab now tries to resolve the "Download anyway" confirmation automatically.
 
 ClassGrab focuses on Google Drive files and Google Docs, Sheets, and Slides. Third-party links, YouTube videos, Forms, folders, and external websites are not downloaded yet.
 
-Open a specific post's full details first. ClassGrab intentionally does not scan the stream or classwork overview. If it cannot identify the current post's attachment container, it asks you to open the details instead of collecting files from other posts.
+On the Stream, use the button on one post. If it has no ClassGrab button, open
+that post's full details. ClassGrab never collects the whole Stream or
+Classwork overview. Unknown or ambiguous card boundaries require the details
+workflow so files from neighboring posts cannot be included.
 
 ### What does the duplicate warning check?
 
@@ -185,7 +209,17 @@ Chrome injects the content script when the Classroom page loads. If the page was
 
 ### Does ClassGrab read my Classroom data?
 
-ClassGrab inspects current-post links locally as Classroom renders, including while the popup is closed, to recognize stale content during navigation. It scans again when you open the popup and checks the post before a user-requested download. Link text and URLs used by this guard stay in the tab's memory; attachment IDs, browser download IDs, outcome metadata, and the theme preference stay in local extension storage. Old active-download records containing filenames or URLs are stripped on the next reconciliation. The browser separately maintains its own download history. ClassGrab does not use a backend, analytics, or tracking.
+ClassGrab inspects visible Stream cards and their supported attachment links
+locally to place per-post buttons. It also inspects the current detail view as
+Classroom renders, including while the popup is closed, to recognize stale
+content during navigation. Only the clicked card or open post's files are
+returned to the popup for download. It checks that selection again before
+starting files. Link text, URLs, and selection tokens stay in the tab's memory;
+attachment IDs, browser download IDs, outcome metadata, and the theme
+preference stay in local extension storage. Old active-download records
+containing filenames or URLs are stripped on the next reconciliation. The
+browser separately maintains its own download history. ClassGrab does not use
+a backend, analytics, or tracking.
 
 ### Does ClassGrab support Firefox or Safari?
 
