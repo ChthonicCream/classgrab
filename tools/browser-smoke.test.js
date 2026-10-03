@@ -12,6 +12,8 @@ const { test } = require("node:test");
 const repository = path.resolve(__dirname, "..");
 const fixtureUrl = "https://classroom.google.com/u/0/c/MTAx";
 const fixtureHtml = fs.readFileSync(path.join(__dirname, "fixtures/stream.html"), "utf8");
+const materialUrl = `${fixtureUrl}/m/MjAy/details`;
+const materialHtml = fs.readFileSync(path.join(__dirname, "fixtures/material.html"), "utf8");
 const argumentsByName = new Map();
 for (let index = 2; index < process.argv.length; index += 2) {
     argumentsByName.set(process.argv[index], process.argv[index + 1]);
@@ -112,7 +114,7 @@ async function closePopup(protocol, popup) {
     await until(() => popup.closed, "The action popup did not close.");
 }
 
-test("installed ClassGrab Stream buttons, real action popup and duplicate guard", { timeout: 90000 }, async (t) => {
+test("installed ClassGrab Stream buttons, material details, real action popup and duplicate guard", { timeout: 90000 }, async (t) => {
     assert.ok(playwrightModule && executable,
         "This opt-in check needs --playwright <module path> and --browser <full Chromium executable>.");
     assert.ok(fs.existsSync(executable), "The specified Chromium executable must exist.");
@@ -198,6 +200,7 @@ test("installed ClassGrab Stream buttons, real action popup and duplicate guard"
         await context.route("**/*", async (route) => {
             const url = route.request().url();
             if (url === fixtureUrl) return route.fulfill({ contentType: "text/html", body: fixtureHtml });
+            if (url === materialUrl) return route.fulfill({ contentType: "text/html", body: materialHtml });
             if (url.startsWith("chrome-extension://")) return route.continue();
             return route.abort();
         });
@@ -364,6 +367,41 @@ test("installed ClassGrab Stream buttons, real action popup and duplicate guard"
             });
             await until(async () => (await page.locator(".classgrab-stream-download").count()) === 0, "Controls remained after leaving the Stream.");
             assert.equal((await starts()).length, 3);
+        });
+
+        await t.test("material shell detects nine sibling files and rejects them during a post change", async () => {
+            await page.goto(materialUrl);
+            const scanPage = () => worker.evaluate(async () => {
+                const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+                return chrome.tabs.sendMessage(tab.id, { action: "getDriveLinks" }, { frameId: 0 });
+            });
+            const result = await until(async () => {
+                const scan = await scanPage().catch(() => null);
+                return scan?.pageUrl === materialUrl && scan.files.length === 9 ? scan : null;
+            }, "The installed scanner did not detect the material's nine files.");
+            assert.equal(result.scope, "post");
+            assert.deepEqual(result.files.map((file) => file.fileId),
+                ["matA", "matB", "matC", "matD", "matE", "matF", "matG", "matH", "matI"]);
+            assert.equal(await page.locator(".classgrab-stream-download").count(), 0);
+            await page.evaluate(() => {
+                history.pushState({}, "", "/u/0/c/MTAx/m/MjAz/details");
+                document.querySelectorAll("#material [data-stream-item-id]").forEach((node) => {
+                    node.setAttribute("data-stream-item-id", "203");
+                });
+                document.querySelector("#material h1").textContent = "Another example material";
+                window.dispatchEvent(new PopStateEvent("popstate"));
+            });
+            const retained = await scanPage();
+            assert.equal(retained.scope, "unavailable");
+            assert.deepEqual(retained.files, []);
+            await page.evaluate(() => {
+                document.querySelectorAll("#material .attachments a").forEach((node, index) => {
+                    node.href = `https://drive.google.com/file/d/next${index}/view`;
+                });
+            });
+            assert.deepEqual((await scanPage()).files.map((file) => file.fileId),
+                Array.from({ length: 9 }, (_, index) => `next${index}`));
+            assert.equal((await starts()).length, 3, "A scan must not start material downloads.");
         });
         assert.deepEqual(errors, [], "The genuine content script, popup and worker must not throw exceptions.");
         t.diagnostic(`Chromium ${browser.version()}; genuine installed action popup/runtime/storage; download acceptance/history stubbed; synthetic URL only.`);

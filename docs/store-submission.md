@@ -1,14 +1,14 @@
-# Submit the ClassGrab 1.2.0 update
+# Submit the ClassGrab 1.2.1 update
 
 These instructions update the existing Chrome Web Store and Microsoft Edge
-Add-ons listings. Version 1.2.0 is a locally validated package with manual
+Add-ons listings. Version 1.2.1 is a locally validated package with manual
 submission gates still open; pushing code to GitHub does not publish either
 store update. Public store procedures were checked against official
 documentation on 3 October 2026; neither signed-in dashboard was inspected.
 
-Upload version: `1.2.0`.
+Upload version: `1.2.1`.
 
-See the [release handoff](release-1.2.0.md) for the
+See the [release handoff](release-1.2.1.md) for the
 verified evidence, fixes, ZIP fingerprint, and remaining manual checks.
 
 The Stream button uses `chrome.action.openPopup`, available to regular
@@ -29,19 +29,19 @@ update Chrome and Edge before testing. See the
    `D:\USB\Nuke Test Field\classgrab\ClassGrab.zip`. Use this same complete
    package for both stores. Do not upload GitHub's source-code ZIP.
 3. Inspect the archive: `manifest.json` must be at its root, with version
-   `1.2.0`; the other roots are `icons/`, `scripts/`, `styles/`, `views/`, and
+   `1.2.1`; the other roots are `icons/`, `scripts/`, `styles/`, `views/`, and
    `_locales/`. There must be no outer `classgrab/` directory. The release
    command checks the packaged files against the tracked upload set.
    It also rejects duplicate ZIP entries and verifies the archived version
    and every entry's bytes against the validated checkout.
-   In each dashboard, confirm `1.2.0` is newer than the last submitted/published
-   package. If either already uses `1.2.0` or higher, increment all release
+   In each dashboard, confirm `1.2.1` is newer than the last submitted/published
+   package. If either already uses `1.2.1` or higher, increment all release
    markers and rebuild before uploading changed code.
 4. In Chrome, open `chrome://extensions/`; in Edge, open `edge://extensions/`.
    Enable **Developer mode**, select **Load unpacked**, and choose this
    repository folder. For an already loaded development copy, click its
    reload button. Temporarily disable the store copy while testing to avoid
-   opening the wrong copy. Confirm the development copy shows `1.2.0`.
+   opening the wrong copy. Confirm the development copy shows `1.2.1`.
 5. Refresh the Classroom tab after loading or reloading the extension, then
    run the following checks in both browsers with a test classroom:
 
@@ -51,6 +51,7 @@ update Chrome and Edge before testing. See the
    | Click a different Stream card, including one sharing a file with the first | Only the new card's files appear; shared recent files warn instead of silently repeating. |
    | Scroll to load more posts, then go Back/Forward or refresh | One button per eligible card; no buttons or selections leak into another page. |
    | Open a post with attachments while other posts remain in the stream | Only the current post's supported files appear. |
+   | Open a material's details with attachments beside its menu controls | All of that material's supported files appear, including the reported nine-file layout. |
    | From an announcement's three-dot menu, choose Copy link, open that link, then open ClassGrab | Only that announcement's supported files appear. |
    | Go back, open a different post, and reopen ClassGrab | The previous post's files are gone. |
    | Open the toolbar popup on the Stream without clicking a card button | It explains the per-card button/details choices instead of collecting the feed. |
@@ -78,7 +79,7 @@ page if Classroom has not finished switching posts.
 1. Sign in to the owning account at the [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole/).
 2. Open the **existing ClassGrab item**. Choose **Package** > **Upload New
    Package**, then select `ClassGrab.zip`. Confirm the parsed version is
-   `1.2.0`.
+   `1.2.1`.
 3. Review **Store listing**, **Privacy practices**, and **Distribution**.
    Preserve the existing audience and countries unless you intend a change.
 4. Add the release notes below to the listing description if desired. Save
@@ -103,7 +104,7 @@ process instead of uploading an unsigned ZIP. Google documents this under
    If you land on Home, open the **Edge** workspace.
 2. Open the **existing ClassGrab extension**. In **Packages**, upload the new
    `ClassGrab.zip` using the package upload/replacement control. Resolve any
-   validation messages and confirm version `1.2.0`.
+   validation messages and confirm version `1.2.1`.
 3. Review **Availability**, **Properties**, **Privacy**, and **Store listings**;
    save changes. Keep the current markets and visibility unless changing
    distribution deliberately.
@@ -137,13 +138,14 @@ its screenshots for you.
   require re-uploading the package. See [per-language listing fields](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension#step-7-enter-store-listing-details-for-each-language).
 
 The new `store-assets/classgrab-stream-1.2.0-1280x800.png` candidate shows
-actual 1.2.0 Stream controls on a clearly labelled synthetic example, with no
-account connected. Its 1280x800 dimensions fit both stores. Review it after
-the live checks before using it in the listing. It is separate from the ZIP.
+actual 1.2.0 Stream controls, unchanged in 1.2.1, on a clearly labelled
+synthetic example with no account connected. Its 1280x800 dimensions fit both
+stores. Review it after the live checks before using it in the listing. It is
+separate from the ZIP.
 
 The old `store-assets/classgrab-store-screenshot-1280x800.png` shows a
 **v1.1.1** popup and should not illustrate this update. For a current popup
-screenshot, capture the manually tested 1.2.0 build with synthetic or fully
+screenshot, capture the manually tested 1.2.1 build with synthetic or fully
 redacted class/account data, retaining the visible version and duplicate UI.
 Use a 1280x800 browser capture for both stores. Review dashboard-only images,
 logos, and required promotional assets there; their completeness was not
@@ -151,9 +153,10 @@ checked locally.
 
 ## Suggested release notes
 
-> ClassGrab 1.2.0 adds a Download attachments button to individual Stream
-> posts, including announcements. Click it to start only that post's files
-> without opening its details. Existing duplicate warnings help prevent
+> ClassGrab 1.2.1 fixes missing attachments on material detail pages.
+> It includes the 1.2.0 Download attachments button on individual Stream
+> posts, including announcements, to start only that post's files without
+> opening its details. Existing duplicate warnings help prevent
 > repeat downloads. Switching posts or tabs during preparation stops files
 > that have not started. Successful batches close the popup so the browser's
 > download list stays visible. Requires Chromium 127 or newer. No additional
@@ -204,6 +207,9 @@ ClassGrab, and check that only its attachments appear. Navigate back and open
 the second post; verify that the list changes to that post's attachments.
 Include an announcement: use its three-dot menu > Copy link and open the
 copied link to select that post before opening ClassGrab.
+Include a material detail page with file cards beside its menu controls;
+confirm its supported files appear, then open another material and confirm
+the list is replaced without retaining the previous material's files.
 Download a file, wait for completion, and attempt it again to exercise the
 duplicate warning. Also test opening ClassGrab from the stream itself.
 
@@ -262,7 +268,7 @@ skipped duplicates, and tracking warnings keep it open so the result can be
 read. ClassGrab leaves the browser's own download UI enabled.
 
 After each store reports publication, check its public listing and test the
-store-installed copy at version `1.2.0`. Re-enable the store copy and disable
+store-installed copy at version `1.2.1`. Re-enable the store copy and disable
 the unpacked copy when finished. Refresh open Classroom tabs after the
 update. Update repository store-availability claims only after the relevant
 store confirms the new version is live.

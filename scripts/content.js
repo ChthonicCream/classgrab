@@ -310,15 +310,16 @@ const detailOwners = new WeakMap();
 
 function getCurrentDetailRoot(route, postIds, courseIds) {
     if (!["a", "m", "p"].includes(route.kind)) return null;
-    const selector = 'main, [role="main"], .Iwp0Ue.xWw7yd' + (route.kind === "p" ? ", .EE538" : "");
+    const usesPostShell = ["m", "p"].includes(route.kind);
+    const selector = 'main, [role="main"], .Iwp0Ue.xWw7yd' + (usesPostShell ? ", .EE538" : "");
     const candidates = Array.from(document.querySelectorAll(selector))
         .filter((node) => isVisiblePostElement(node) && node.getClientRects().length > 0)
         .filter((node) => belongsToCurrentPost(node, postIds, courseIds))
         .filter((node) => {
-            // Announcement details use a headerless shell around the post
-            // controls and file cards. Require a visible current-post marker
-            // inside that known shell; never infer a post from a file alone.
-            if (route.kind === "p" && node.matches(".EE538")) {
+            // Material and announcement details can put the file cards beside
+            // empty post controls in this shell. Require a visible current-post
+            // marker inside it; never infer a post from a file alone.
+            if (usesPostShell && node.matches(".EE538")) {
                 return Array.from(node.querySelectorAll("[data-stream-item-id]"))
                     .some((post) => postIds.has(post.getAttribute("data-stream-item-id"))
                         && belongsToCurrentPost(post, postIds, courseIds)

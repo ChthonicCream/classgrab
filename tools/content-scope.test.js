@@ -275,6 +275,53 @@ test("headerless announcement details use the verified container around controls
     assert.deepEqual(view.scan().files.map((file) => file.fileId), ["announcement-file"]);
 });
 
+test("material detail shell includes nine sibling files beside empty post controls", () => {
+    // User diagnostic: DIV.EE538, one h1, nine visible supported links, and
+    // two nested current-post controls which contain no files. No main exists.
+    const shell = announcement([
+        new Element("h1"),
+        ...Array.from({ length: 9 }, (_, index) => attachment(`sample-${index}`)),
+    ]);
+    const view = fixture([
+        shell,
+        announcement([attachment("cached")], "201", { hidden: "" }),
+        attachment("outside"),
+    ], postUrl("202", "m"));
+    const result = view.scan();
+    assert.equal(result.scope, "post");
+    assert.deepEqual(result.files.map((file) => file.fileId),
+        Array.from({ length: 9 }, (_, index) => `sample-${index}`));
+});
+
+test("material shells require the current post and reject ambiguous or foreign boundaries", () => {
+    for (const children of [
+        [announcement([new Element("h1"), attachment("wrong")], "201")],
+        [announcement([new Element("h1"), attachment("current"), post("203", [attachment("foreign")])])],
+        [announcement([new Element("h1"), attachment("course")], "202", { "data-course-id": "999" })],
+        [new Element("div", { class: "EE538" }, [new Element("h1"), attachment("unkeyed")])],
+        [announcement([new Element("h1"), attachment("one")]), announcement([new Element("h1"), attachment("two")])],
+    ]) {
+        assert.deepEqual(fixture(children, postUrl("202", "m")).scan().files, []);
+    }
+    assert.deepEqual(fixture([announcement([new Element("h1"), attachment("stream")])], streamUrl).scan().files, []);
+});
+
+test("material shell navigation cannot relabel retained files and replaces them after rendering", () => {
+    const shell = announcement([new Element("h1"), attachment("old")]);
+    const view = fixture([shell], postUrl("202", "m"));
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["old"]);
+    view.navigate(postUrl("203", "m"));
+    shell.children[0].attrs["data-stream-item-id"] = "203";
+    shell.children[0].children[0].attrs["data-stream-item-id"] = "203";
+    shell.children[1].textContent = "Another material";
+    assert.equal(view.scan().scope, "unavailable");
+    assert.deepEqual(view.scan().files, []);
+    const next = attachment("new");
+    next.parentElement = shell;
+    shell.children[2] = next;
+    assert.deepEqual(view.scan().files.map((file) => file.fileId), ["new"]);
+});
+
 test("announcement boundaries reject feeds, foreign markers, unkeyed shells and ambiguous details", () => {
     assert.equal(fixture([announcement([attachment("stream-file")])],
         `${origin}/c/${encodeId("101")}`).scan().scope, "not-post");

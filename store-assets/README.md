@@ -4,13 +4,13 @@ Listing images live here. These files are separate from the
 extension package and are not included in `ClassGrab.zip`.
 
 The current **1.2.0 candidate** is a real Chromium rendering of the installed
-extension's Stream controls on a synthetic fixture. It prominently says no
-account is connected and all class/post/file data is fictional. Review it
+extension's Stream controls on a synthetic fixture, unchanged in 1.2.1. It
+prominently says no account is connected and all class/post/file data is fictional. Review it
 after the signed-in Chrome/Edge checks before uploading.
 
 The older popup screenshot shows **v1.1.1**, omits current statuses and the
 popup-closing hint, and should not represent this update. Capture a current
-1.2.0 popup in a 1280x800 browser frame after the manual checks. Use synthetic
+1.2.1 popup in a 1280x800 browser frame after the manual checks. Use synthetic
 or fully redacted data. Do not edit an old version badge to imply a test.
 
 ## Screenshots

@@ -9,14 +9,14 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.2.0-6366f1?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.2.1-6366f1?style=for-the-badge">
   <img alt="Chrome" src="https://img.shields.io/badge/Chrome-supported-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
   <img alt="Edge" src="https://img.shields.io/badge/Edge-supported-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
 </p>
 
 ClassGrab is a small Chromium extension for students and teachers who want to save the files attached to a Google Classroom post without opening each attachment one by one.
 
-It is intended for **Google Chrome** and **Microsoft Edge** only. Version 1.2.0 requires Chromium 127 or newer to open the popup from a Stream button. Requests for Firefox, Safari, or other browser builds should be opened as GitHub issues so they can be discussed and tracked separately.
+It is intended for **Google Chrome** and **Microsoft Edge** only. Version 1.2.1 requires Chromium 127 or newer to open the popup from a Stream button. Requests for Firefox, Safari, or other browser builds should be opened as GitHub issues so they can be discussed and tracked separately.
 
 ![ClassGrab 1.2.0 Stream buttons on a synthetic example](store-assets/classgrab-stream-1.2.0-1280x800.png)
 
@@ -48,11 +48,12 @@ ClassGrab is distributed through:
 - Chrome Web Store
 - Microsoft Edge Add-ons
 
-Current package: v1.2.0. Complete the live browser checks in the [store submission guide](docs/store-submission.md) before uploading. GitHub updates do not automatically update either store.
+Current package: v1.2.1. Complete the live browser checks in the [store submission guide](docs/store-submission.md) before uploading. GitHub updates do not automatically update either store.
 
-The [1.2.0 release handoff](docs/release-1.2.0.md) records validation and the
-remaining manual gates. The [1.1.7 audit](docs/release-audit-1.1.7.md) is historical.
-Store publication of v1.2.0 is not verified here.
+The [1.2.1 release handoff](docs/release-1.2.1.md) records validation and the
+remaining manual gates. The [1.2.0 Stream release](docs/release-1.2.0.md) and
+[1.1.7 audit](docs/release-audit-1.1.7.md) are historical.
+Store publication of v1.2.1 is not verified here.
 
 Packaged locales are English, Spanish, French, Simplified Chinese, and Vietnamese. ClassGrab v1.0.0 was the first store release. Other browser stores are not part of the current release scope. Open a feature request if you want another browser supported.
 
@@ -105,6 +106,12 @@ Switching tabs or posts during preparation stops files that have not started.
 | Unsupported links | Ignored for now |
 
 ## Versions
+
+### v1.2.1
+
+- Fixed material detail pages showing no attachments when file cards sit beside empty post controls inside Classroom's `.EE538` container.
+- Require a visible marker matching the current post and reject foreign or ambiguous containers, while retaining the stale-file navigation checks.
+- Added the reported nine-file layout, boundary and navigation regressions, plus an installed-extension Chromium check on a synthetic material page.
 
 ### v1.2.0
 
