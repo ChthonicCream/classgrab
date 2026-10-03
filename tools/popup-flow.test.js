@@ -71,6 +71,34 @@ test("explicit download again passes authorization, cancellation starts nothing"
     assert.equal(state.batches[0].allowDuplicate, true);
 });
 
+test("download again skips active duplicates before preparation or manual confirmation", async () => {
+    const { sandbox, state } = setup({
+        sendRuntimeMessage: async () => ({ statuses: {
+            old: { label: "started" }, done: { label: "complete" },
+        } }),
+    });
+    sandbox.chooseDuplicateAction = async () => "again";
+    sandbox.chrome.tabs.sendMessage = async () => ({
+        scope: "post", pageUrl: postUrl, files: [file("old"), file("done"), file("new")],
+    });
+    let preparedIds;
+    let skippedCount;
+    sandbox.downloadBatch = async (files, allowDuplicate, skipped) => {
+        preparedIds = files.map((item) => item.id);
+        skippedCount = skipped;
+        assert.equal(allowDuplicate, true);
+        return { started: files.length, skipped };
+    };
+    await sandbox.requestDownload([file("old"), file("done"), file("new")]);
+    assert.deepEqual(Array.from(preparedIds), ["done", "new"]);
+    assert.equal(skippedCount, 1);
+    assert.equal(state.closes, 0, "skipped active files must leave their result visible");
+
+    preparedIds = null;
+    await sandbox.requestDownload([file("old")]);
+    assert.equal(preparedIds, null, "an active-only batch must never enter preparation");
+});
+
 test("double clicks while waiting on duplicate choice cannot submit another batch", async () => {
     let choose;
     const { sandbox, state } = setup({ sendRuntimeMessage: async () => ({ statuses: { old: { label: "started" } } }) });

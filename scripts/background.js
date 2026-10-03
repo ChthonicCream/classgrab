@@ -89,6 +89,13 @@ async function reconcileTrackedDownloads(onlyDownloadId = null, change = null) {
             continue;
         }
 
+        // Early releases saved full attachment objects. Remove legacy names
+        // and URLs even while that download is still active.
+        downloads[downloadId] = {
+            id: file.id,
+            ...(file.previousComplete ? { previousComplete: file.previousComplete } : {}),
+        };
+
         const items = await chrome.downloads.search({ id: Number(downloadId) });
         const item = items && items[0];
         let status = null;

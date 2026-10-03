@@ -479,6 +479,18 @@ async function downloadBatch(targetFiles, allowDuplicate = false, skipped = 0) {
                 }
 
                 if (prepared.manualUrl) {
+                    // Another popup may start this file during the Drive fetch.
+                    // Manual fallback does not pass through startDownload's guard.
+                    const history = await sendRuntimeMessage({ action: "getDownloadStatuses" });
+                    if (!history || history.error || !history.statuses) {
+                        throw new Error(t("historyUnavailable"));
+                    }
+                    const status = history.statuses[file.id];
+                    if (status && (status.label === "started" || (!allowDuplicate && status.label === "complete"))) {
+                        skipped += 1;
+                        updateFileStatus(file.id, status.label, status.type);
+                        continue;
+                    }
                     await openManualDownload(file, prepared.manualUrl);
                     manual += 1;
                     continue;
@@ -796,13 +808,17 @@ async function requestDownload(targetFiles) {
                 return;
             }
             allowDuplicate = choice === "again";
-            if (!allowDuplicate) {
-                skippedDuplicates = duplicates.length;
-                const duplicateIds = new Set(duplicates.map((file) => file.id));
+            // Active downloads must be removed before Drive preparation can
+            // open a manual-confirmation tab, bypassing the start guard.
+            const skippedFiles = duplicates.filter((file) =>
+                !allowDuplicate || history.statuses[file.id].label === "started");
+            if (skippedFiles.length) {
+                skippedDuplicates = skippedFiles.length;
+                const duplicateIds = new Set(skippedFiles.map((file) => file.id));
                 targetFiles = targetFiles.filter((file) => !duplicateIds.has(file.id));
             }
             if (!targetFiles.length) {
-                setStatus(t("summaryDuplicates", String(duplicates.length)), "warning");
+                setStatus(t("summaryDuplicates", String(skippedDuplicates)), "warning");
                 return;
             }
         }

@@ -10,15 +10,18 @@
 
 <p align="center">
   <img alt="Version" src="https://img.shields.io/badge/version-1.1.7-6366f1?style=for-the-badge">
-  <img alt="Chrome" src="https://img.shields.io/badge/Chrome%20Web%20Store-listed-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
-  <img alt="Edge" src="https://img.shields.io/badge/Edge%20Add--ons-listed-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
+  <img alt="Chrome" src="https://img.shields.io/badge/Chrome-supported-4285F4?logo=googlechrome&logoColor=white&style=for-the-badge">
+  <img alt="Edge" src="https://img.shields.io/badge/Edge-supported-0078D7?logo=microsoftedge&logoColor=white&style=for-the-badge">
 </p>
 
 ClassGrab is a small Chromium extension for students and teachers who want to save the files attached to a Google Classroom post without opening each attachment one by one.
 
 It is intended for **Google Chrome** and **Microsoft Edge** only. Requests for Firefox, Safari, or other browser builds should be opened as GitHub issues so they can be discussed and tracked separately.
 
-![ClassGrab popup preview](assets/classgrab-preview.png)
+![Historical ClassGrab v1.1.1 popup preview](assets/classgrab-preview.png)
+
+This historical image shows v1.1.1. Replace it with a redacted capture of the
+tested build before using it to illustrate the current store update.
 
 ## Features
 
@@ -44,6 +47,9 @@ ClassGrab is distributed through:
 - Microsoft Edge Add-ons
 
 Current package: v1.1.7. Complete the live browser checks in the [store submission guide](docs/store-submission.md) before uploading. GitHub updates do not automatically update either store.
+
+The [local release audit](docs/release-audit-1.1.7.md) records package validation
+and the remaining manual gates. Store publication of v1.1.7 is not verified here.
 
 Packaged locales are English, Spanish, French, Simplified Chinese, and Vietnamese. ClassGrab v1.0.0 was the first store release. Other browser stores are not part of the current release scope. Open a feature request if you want another browser supported.
 
@@ -94,6 +100,7 @@ Stream itself is not a selected post, so ClassGrab does not collect its files.
 - Require a matching current-post marker inside the announcement container and preserve stale-file checks during navigation.
 - Explain how to open a single announcement from the Stream in all five popup languages.
 - Added announcement discovery, containment, empty-post, and navigation regressions.
+- Local release audit fixes strip legacy active-download filenames/URLs and skip in-progress duplicates before Drive preparation, including when choosing Download again.
 
 ### v1.1.6
 
@@ -168,7 +175,7 @@ Open a specific post's full details first. ClassGrab intentionally does not scan
 
 ### What does the duplicate warning check?
 
-It checks the attachment ID against ClassGrab's local status records in the same browser profile, retained for up to seven days and 100 recent entries. Files with the same name but different IDs are separate files. A completed file needs explicit confirmation to download again; a tracked file still downloading is skipped. Failed downloads and HTML confirmation pages can be retried.
+It checks the attachment ID against ClassGrab's local status records in the same browser profile. Completed status history is limited to the last seven days and 100 recent entries; pruning happens on the next status/download operation, not on a deletion timer. Active downloads retain a browser download ID mapping until reconciliation so they cannot be started twice. Files with the same name but different IDs are separate files. A completed file needs explicit confirmation to download again; a tracked file still downloading is skipped. Failed downloads and HTML confirmation pages can be retried.
 
 This is not a filesystem scan and does not cover downloads made outside ClassGrab, another profile, cleared history, or older records. Editing a Google file does not change its ID, so choose Download again when you want a newer revision. No filename or source URL is saved in the history.
 
@@ -178,7 +185,7 @@ Chrome injects the content script when the Classroom page loads. If the page was
 
 ### Does ClassGrab read my Classroom data?
 
-ClassGrab scans links within the current Google Classroom post when you open the popup and checks the post again before downloading. Recent attachment IDs and download statuses stay in local extension storage. It does not use a backend, analytics, or tracking.
+ClassGrab inspects current-post links locally as Classroom renders, including while the popup is closed, to recognize stale content during navigation. It scans again when you open the popup and checks the post before a user-requested download. Link text and URLs used by this guard stay in the tab's memory; attachment IDs, browser download IDs, outcome metadata, and the theme preference stay in local extension storage. Old active-download records containing filenames or URLs are stripped on the next reconciliation. The browser separately maintains its own download history. ClassGrab does not use a backend, analytics, or tracking.
 
 ### Does ClassGrab support Firefox or Safari?
 
@@ -208,7 +215,7 @@ Before preparing a store update, run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\release.ps1
 ```
 
-The command verifies the version in `manifest.json`, the popup badge, and README package markers, runs JavaScript syntax checks, post-scope, popup-flow, bulk-download, background-storage, duplicate-download, and Git privacy regression tests, and `git diff --check`, rebuilds `ClassGrab.zip`, and rejects package contents that do not match the tracked store upload files, including `_locales/`. Store approval is separate from the package version.
+The command verifies the version in `manifest.json`, the popup badge, README package markers, and store guide, runs JavaScript syntax checks, post-scope, popup-flow, bulk-download, background-storage, duplicate-download, release-package, and Git privacy regression tests, and `git diff --check`, rebuilds `ClassGrab.zip`, and rejects duplicate entries or package contents that do not match the tracked store upload files, including `_locales/`. It reads the archived manifest version and compares every ZIP payload's SHA-256 to the validated checkout. Store approval is separate from the package version.
 
 It also runs `tools/security-check.ps1`, which gates reviewed permissions, required locale files/messages, common secret and personal-data patterns, Git commit identity and remote URL privacy, PNG text metadata, remote script/style loads, unsafe HTML injection APIs, and private files in the release package.
 

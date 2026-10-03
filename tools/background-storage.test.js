@@ -240,6 +240,33 @@ async function verifyRestartAndMissingHistory() {
     assert.ok((await missing.send(startRequest("drive:synthetic-restarted"))).downloadId);
 }
 
+async function verifyLegacyTrackingPrivacy() {
+    const attachmentId = "drive:synthetic-legacy";
+    const seed = {
+        [DOWNLOADS_KEY]: { "91": {
+            id: attachmentId,
+            name: "Synthetic_Legacy.pdf",
+            link: "https://drive.google.com/uc?id=mock",
+            viewUrl: "https://drive.google.com/file/d/mock/view",
+            originalUrl: "https://drive.google.com/open?id=mock",
+        } },
+        [STATUSES_KEY]: { [attachmentId]: { label: "started", type: "success", updatedAt: Date.now() } },
+    };
+    const harness = createHarness(seed, [{ id: 91, state: "in_progress", mime: "application/pdf" }]);
+    await harness.send({ action: "getDownloadStatuses" });
+    assert.deepEqual(harness.stored[DOWNLOADS_KEY]["91"], { id: attachmentId },
+        "legacy active records must lose filenames and URLs on reconciliation");
+    const duplicate = await harness.send(startRequest(attachmentId, true));
+    assert.equal(duplicate.inProgress, true, "privacy migration must preserve the active-download guard");
+    assert.equal(harness.downloadCalls.length, 0);
+    harness.change(91, { state: "complete" });
+    const completed = await harness.send({ action: "getDownloadStatuses" });
+    assert.equal(completed.statuses[attachmentId].label, "complete");
+    assert.deepEqual(harness.stored[DOWNLOADS_KEY], {});
+    assert.ok(!JSON.stringify(harness.stored).includes("https:"));
+    assert.ok(!JSON.stringify(harness.stored).includes("Synthetic_Legacy"));
+}
+
 async function verifyRetentionAndValidation() {
     const now = Date.now();
     const statuses = Object.fromEntries(Array.from({ length: 110 }, (_, index) => [
@@ -296,6 +323,7 @@ async function verifyTrackingWriteFailure() {
     await verifyDuplicateGuard();
     await verifyRetryAndImmediateCompletion();
     await verifyRestartAndMissingHistory();
+    await verifyLegacyTrackingPrivacy();
     await verifyRetentionAndValidation();
     await verifyTrackingWriteFailure();
     console.log("Background storage, duplicate guard, recovery, and download validation tests passed.");

@@ -27,6 +27,7 @@ function loadDownloadBatch(overrides = {}) {
         prepareDownloadUrl: async (file) => ({ url: file.link, note: null }),
         startDownload: async () => {},
         openManualDownload() {},
+        sendRuntimeMessage: async () => ({ statuses: {} }),
         restoreStoredStatuses() { return {}; },
         ...overrides,
     };
@@ -194,12 +195,45 @@ async function testFailureDuringPreparationIsPreserved() {
     assert.equal(summaries.at(-1).type, "error", "the final summary must preserve the failure");
 }
 
+async function testManualFallbackRechecksDuplicateHistory() {
+    for (const scenario of [
+        { label: "started", allowDuplicate: false, skipped: 1 },
+        { label: "started", allowDuplicate: true, skipped: 1 },
+        { label: "complete", allowDuplicate: false, skipped: 1 },
+        { label: "complete", allowDuplicate: true, manual: 1 },
+        { error: "Synthetic storage failure", failed: 1 },
+    ]) {
+        let prepared = false;
+        let historyChecks = 0;
+        let manualOpens = 0;
+        const sandbox = loadDownloadBatch({
+            console: { error() {} },
+            prepareDownloadUrl: async () => {
+                prepared = true;
+                return { manualUrl: "https://drive.google.com/file/d/mock/view" };
+            },
+            sendRuntimeMessage: async () => {
+                assert.equal(prepared, true, "history must be refreshed after Drive preparation");
+                historyChecks++;
+                return { statuses: { "0": { label: scenario.label, type: "success" } }, error: scenario.error };
+            },
+            openManualDownload: async () => { manualOpens++; },
+        });
+        const result = await sandbox.downloadBatch(makeFiles(1), scenario.allowDuplicate);
+        assert.equal(historyChecks, 1);
+        assert.equal(manualOpens, scenario.manual || 0);
+        assert.equal(result.skipped, scenario.skipped || 0);
+        assert.equal(result.failed, scenario.failed || 0);
+    }
+}
+
 (async () => {
     await testBulkPreparationUsesBoundedConcurrency();
     await testOneFailureDoesNotStopTheBatch();
     await testManualFallbackFinishesBeforeTheBatch();
     await testManualFallbackFailureIsReported();
     await testFailureDuringPreparationIsPreserved();
+    await testManualFallbackRechecksDuplicateHistory();
     console.log("Download batch concurrency tests passed.");
 })().catch((error) => {
     console.error(error);

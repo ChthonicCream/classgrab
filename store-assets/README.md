@@ -1,7 +1,12 @@
 # Store Assets
 
-Upload-ready listing images live here. These files are separate from the
+Listing images live here. These files are separate from the
 extension package and are not included in `ClassGrab.zip`.
+
+The current screenshot is historical: it shows **v1.1.1**, omits the current
+status UI and popup-closing hint, and is **not ready for the v1.1.7 update**.
+Capture a fresh, redacted v1.1.7 screenshot after the Chrome/Edge manual tests.
+Do not edit an old screenshot's version badge to imply a new test was run.
 
 ## Screenshots
 
@@ -10,7 +15,8 @@ extension package and are not included in `ClassGrab.zip`.
 
 Chrome accepts screenshots at `1280x800` or `640x400`. Microsoft Edge Add-ons
 accepts screenshots at `1280x800` or `640x480`. Use the `1280x800` image for
-both stores unless a store-specific rejection requires another asset.
+both stores for the replacement capture. Existing dashboard assets still need
+an accuracy review; their presence or approval was not checked locally.
 
 Before upload, visually confirm raster screenshots do not expose real student,
 teacher, account, classroom URL, or private-comment information.

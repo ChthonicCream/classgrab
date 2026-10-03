@@ -64,6 +64,7 @@ function Assert-VersionSync {
   $manifestPath = Join-Path $RepoRoot "manifest.json"
   $popupPath = Join-Path $RepoRoot "views/popup.html"
   $readmePath = Join-Path $RepoRoot "README.md"
+  $guidePath = Join-Path $RepoRoot "docs/store-submission.md"
 
   $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
   $manifestVersion = [string]$manifest.version
@@ -92,6 +93,16 @@ function Assert-VersionSync {
   $currentChangelogHeading = "^###\s+v$([regex]::Escape($manifestVersion))\s*$"
   if (-not [regex]::IsMatch($readme, $currentChangelogHeading, [System.Text.RegularExpressions.RegexOptions]::Multiline)) {
     throw "README changelog is missing a '### v$manifestVersion' heading."
+  }
+
+  $guide = Get-Content -LiteralPath $guidePath -Raw
+  $guideChecks = @(
+    @{ Label = "Store guide heading"; Pattern = "^# Submit the ClassGrab ($VersionPattern) update\s*$" },
+    @{ Label = "Store guide upload version"; Pattern = '^Upload version: `(' + $VersionPattern + ')`\.\s*$' }
+  )
+  foreach ($check in $guideChecks) {
+    $versions = Get-RequiredRegexVersions -Text $guide -Pattern $check.Pattern -Label $check.Label
+    Assert-AllVersionsMatch -Label $check.Label -Versions $versions -ExpectedVersion $manifestVersion
   }
 
   Write-Host "Version sync OK: $manifestVersion"
@@ -203,6 +214,10 @@ function Assert-ZipEntriesMatch {
     [Parameter(Mandatory = $true)][string[]]$Actual
   )
 
+  if (@($Actual | Group-Object | Where-Object { $_.Count -gt 1 }).Count -gt 0) {
+    throw "Duplicate file entries were found in the ZIP."
+  }
+
   $expectedSet = @{}
   foreach ($entry in $Expected) {
     $expectedSet[$entry] = $true
@@ -235,6 +250,43 @@ function Assert-ZipEntriesMatch {
   }
 }
 
+function Assert-ZipPayloadMatches {
+  param(
+    [Parameter(Mandatory = $true)][string]$ZipPath,
+    [Parameter(Mandatory = $true)][string]$ExpectedVersion
+  )
+
+  Add-Type -AssemblyName System.IO.Compression
+  $stream = [IO.File]::OpenRead($ZipPath)
+  $zip = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Read)
+  try {
+    $reader = [IO.StreamReader]::new($zip.GetEntry("manifest.json").Open())
+    try { $manifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+    if ([string]$manifest.version -ne $ExpectedVersion) {
+      throw "ZIP manifest version mismatch. Expected $ExpectedVersion; found $($manifest.version)."
+    }
+    foreach ($entry in $zip.Entries | Where-Object { $_.Name }) {
+      $sourcePath = Join-Path $RepoRoot ($entry.FullName -replace "/", [IO.Path]::DirectorySeparatorChar)
+      $sourceHash = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
+      $entryStream = $entry.Open()
+      $sha = [Security.Cryptography.SHA256]::Create()
+      try {
+        $entryHash = [BitConverter]::ToString($sha.ComputeHash($entryStream)).Replace("-", "")
+      } finally {
+        $sha.Dispose()
+        $entryStream.Dispose()
+      }
+      if ($entryHash -ne $sourceHash) {
+        throw "ZIP payload differs from the validated checkout: $($entry.FullName)"
+      }
+    }
+  } finally {
+    $zip.Dispose()
+    $stream.Dispose()
+  }
+  Write-Host "ZIP version and payload hashes OK."
+}
+
 Push-Location $RepoRoot
 try {
   $version = Assert-VersionSync
@@ -248,6 +300,8 @@ try {
   Invoke-CheckedCommand -Command "node" -Arguments @("--test", "tools/popup-flow.test.js")
   Write-Host "==> tools/security-check.test.ps1"
   & (Join-Path $PSScriptRoot "security-check.test.ps1")
+  Write-Host "==> tools/release-check.test.ps1"
+  & (Join-Path $PSScriptRoot "release-check.test.ps1")
   Invoke-CheckedCommand -Command "git" -Arguments @("diff", "--check", "HEAD", "--")
 
   if ($ValidateOnly) {
@@ -269,6 +323,7 @@ try {
   New-ReleaseZip -Entries $expectedEntries -DestinationPath $resolvedOutputPath
   $actualEntries = Get-ZipEntries -ZipPath $resolvedOutputPath
   Assert-ZipEntriesMatch -Expected $expectedEntries -Actual $actualEntries
+  Assert-ZipPayloadMatches -ZipPath $resolvedOutputPath -ExpectedVersion $version
   & (Join-Path $PSScriptRoot "security-check.ps1") -PackagePath $resolvedOutputPath
   if ($LASTEXITCODE -ne 0) {
     throw "Security/privacy check failed."

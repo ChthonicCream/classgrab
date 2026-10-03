@@ -1,9 +1,15 @@
 # Submit the ClassGrab 1.1.7 update
 
 These instructions update the existing Chrome Web Store and Microsoft Edge
-Add-ons listings. Version 1.1.7 is a prepared release; pushing code to GitHub
-does not publish either store update. Store procedures were checked against
-official documentation on 24 September 2026.
+Add-ons listings. Version 1.1.7 is a locally validated package with manual
+submission gates still open; pushing code to GitHub does not publish either
+store update. Public store procedures were checked against official
+documentation on 1 October 2026; neither signed-in dashboard was inspected.
+
+Upload version: `1.1.7`.
+
+See the [local audit and complete gate matrix](release-audit-1.1.7.md) for the
+verified evidence, fixes, ZIP fingerprint, and remaining manual checks.
 
 ## Prepare and test the upload
 
@@ -21,6 +27,11 @@ official documentation on 24 September 2026.
    `1.1.7`; the other roots are `icons/`, `scripts/`, `styles/`, `views/`, and
    `_locales/`. There must be no outer `classgrab/` directory. The release
    command checks the packaged files against the tracked upload set.
+   It also rejects duplicate ZIP entries and verifies the archived version
+   and every entry's bytes against the validated checkout.
+   In each dashboard, confirm `1.1.7` is newer than the last submitted/published
+   package. If either already uses `1.1.7` or higher, increment all release
+   markers and rebuild before uploading changed code.
 4. In Chrome, open `chrome://extensions/`; in Edge, open `edge://extensions/`.
    Enable **Developer mode**, select **Load unpacked**, and choose this
    repository folder. For an already loaded development copy, click its
@@ -44,12 +55,12 @@ The unpacked copy and store copy can have separate local history. Complete a
 download in the copy being tested before checking its duplicate warning.
 
 The automated checks use synthetic Classroom DOM fixtures and mocked browser
-download APIs. User-assisted Edge testing confirmed assignment attachment
-lists and switching posts in v1.1.6. Testing of v1.1.7 then confirmed announcement
-file detection and download, popup closure to reveal browser downloads, and a
-warning on a repeat download attempt. Complete the full checklist in Chrome
-and the remaining duplicate-choice and bulk-download cases before store
-submission. Unknown or ambiguous post layouts return no files; refresh the
+download APIs. Earlier user reports described successful Edge assignment and
+announcement flows. Those historical reports are not independent verification
+of this rebuilt package. All eight rows above remain manual checks in **both**
+Chrome and Edge. Also test actual Docs/Sheets/Slides exports, Drive manual
+confirmation, restricted files, an upgrade retaining old history, and localized
+popup layouts. Unknown or ambiguous post layouts return no files; refresh the
 page if Classroom has not finished switching posts.
 
 ## Chrome Web Store
@@ -61,7 +72,7 @@ page if Classroom has not finished switching posts.
 3. Review **Store listing**, **Privacy practices**, and **Distribution**.
    Preserve the existing audience and countries unless you intend a change.
 4. Add the release notes below to the listing description if desired. Save
-   all changes and choose **Submit for Review**. This follows Google's
+   all changes, review **Test instructions**, and choose **Submit for Review**. This follows Google's
    [existing-item update process](https://developer.chrome.com/docs/webstore/update).
 5. In the confirmation dialog, choose when publication should happen:
    leave automatic publication enabled for release after approval, or uncheck
@@ -116,9 +127,12 @@ its screenshots for you.
   require re-uploading the package. See [per-language listing fields](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension#step-7-enter-store-listing-details-for-each-language).
 
 The existing `store-assets/classgrab-store-screenshot-1280x800.png` is a
-separate listing asset, not part of the ZIP. Review it against the new UI
-before reusing it; replace outdated feature screenshots with redacted images
-from the tested build. Existing accurate listing images can remain.
+separate listing asset, not part of the ZIP. Local visual inspection found a
+**v1.1.1** popup without the current statuses or auto-close hint. Replace it
+with a fresh, redacted **v1.1.7** capture from the manually tested build before
+using it for this update. Its 1280x800 dimensions fit both stores. Existing
+dashboard images, logos, and required promotional assets must be reviewed
+there; their contents and completeness were not checked locally.
 
 ## Suggested release notes
 
@@ -130,6 +144,8 @@ from the tested build. Existing accurate listing images can remain.
 > avoid downloading the same attachment again. Once all downloads in a batch
 > start successfully, the popup closes to uncover the browser's download
 > controls. No additional extension permissions are requested.
+> This rebuilt package also removes legacy filenames/URLs from active tracking
+> records during reconciliation and skips active duplicates before Drive preparation.
 
 ## Reviewer testing notes
 
@@ -144,7 +160,9 @@ duplicate warning. Also test opening ClassGrab from the stream itself.
 
 Duplicate detection matches attachment IDs against ClassGrab's recent local
 history in this browser profile: up to 100 status records from the last seven
-days. Completed or in-progress downloads trigger the warning. **Skip
+days, pruned on the next status/download operation. Idle storage is not cleared
+by a deletion timer. Active browser download ID mappings remain until
+reconciliation. Completed or in-progress downloads trigger the warning. **Skip
 duplicates** is the default; **Download again** permits another completed
 attachment download, while an in-progress attachment remains blocked.
 **Cancel** starts nothing. Failed downloads and HTML warning pages can be
@@ -158,6 +176,31 @@ explanation and linked privacy policy for consistency with this behavior.
 The update retains the existing
 `activeTab`, `downloads`, and `storage` permissions and the existing Drive
 host permissions.
+
+## Privacy and permission field reference
+
+Use these implementation facts when reviewing both dashboards' privacy fields
+and the existing public privacy-policy URL. Do not infer that local-only data
+automatically means no disclosure is needed. Google's
+[privacy fields](https://developer.chrome.com/docs/webstore/cws-dashboard-privacy)
+and Microsoft's [privacy submission fields](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension#step-6-enter-privacy-information)
+require disclosures to agree with the extension and policy.
+
+| Field | Current implementation |
+| --- | --- |
+| Single purpose | Download supported attachments from one open Google Classroom post. |
+| `activeTab` | Read and verify the active Classroom tab after the user opens ClassGrab. |
+| `downloads` | Start requested downloads and reconcile tracked browser download IDs, completion, and errors. |
+| `storage` | Keep recent attachment IDs and outcome metadata, active download ID mappings, and local theme preference. |
+| Classroom content-script access | Inspect current-post links as Classroom renders to reject stale DOM; scan again in the popup. Link text/URLs remain in tab memory rather than saved status history. |
+| Drive host access | Fetch authenticated Drive responses and parse confirmation pages for user-requested downloads. |
+| Remote code | None. Packaged scripts render text safely; downloaded Drive HTML is parsed as data, not executed. |
+| Data transmission | File requests go to Google using the user's existing browser session. No ClassGrab backend, analytics, or third-party telemetry. The browser itself keeps filenames, URLs, and downloaded contents. |
+
+The public policy URL, dashboard checkbox selections, permission justifications,
+test-account access, and all five localized long descriptions require a manual
+review. Packaged locale coverage verifies message keys; it does not prove
+translated layout or that every Google-provided file label is translated.
 
 The popup automatically closes only after every file in the batch has started
 successfully and tracking has been saved. Errors, manual confirmation,
